@@ -1,0 +1,20 @@
+import React from 'react';
+import OverviewComponent from './Overview';
+import EmployeeManagementComponent from './EmployeeManagement';
+import AttendanceManagementComponent from './AttendanceManagement';
+import MDAnnouncementsComponent from './MDAnnouncements';
+import NotificationsComponent from './Notifications';
+import LeaveManagementComponent from './LeaveManagement';
+import ReportsAnalyticsComponent from './ReportsAnalytics';
+import DepartmentsSitesComponent from './DepartmentsSites';
+import SettingsComponent from './Settings';
+
+export const Overview = OverviewComponent;
+export const EmployeeManagement = EmployeeManagementComponent;
+export const AttendanceManagement = AttendanceManagementComponent;
+export const MDAnnouncements = MDAnnouncementsComponent;
+export const Notifications = NotificationsComponent;
+export const LeaveManagement = LeaveManagementComponent;
+export const ReportsAnalytics = ReportsAnalyticsComponent;
+export const DepartmentsSites = DepartmentsSitesComponent;
+export const Settings = SettingsComponent;

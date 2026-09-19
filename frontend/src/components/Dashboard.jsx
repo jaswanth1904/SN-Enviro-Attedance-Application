@@ -9,11 +9,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { useGeolocation } from './useGeolocation';
+import confetti from 'canvas-confetti';
 import api from './api';
 import LeaveHub from './LeaveHub';
 import SalaryHub from './SalaryHub';
+import ProfileCard from './ProfileCard';
 
-const formatDuration = (ms) => {
+export const formatDuration = (ms) => {
     const hours = Math.floor(ms / (1000 * 60 * 60));
     const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((ms % (1000 * 60)) / 1000);
@@ -44,7 +46,7 @@ const MovingClockIcon = ({ time }) => {
                     x1="12" y1="12" x2="12" y2="5" stroke="currentColor" strokeWidth="1"
                     animate={{ rotate: s * 6 }}
                     style={{ transformOrigin: '12px 12px' }}
-                    className="text-md-secondary"
+                    className="text-blue-600"
                 />
                 <circle cx="12" cy="12" r="0.5" fill="currentColor" />
             </svg>
@@ -53,7 +55,7 @@ const MovingClockIcon = ({ time }) => {
 };
 
 const StatusBadge = ({ active }) => (
-    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-md-surface-container-high border border-md-outline/10 text-xs font-semibold">
+    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-md-outline/10 text-xs font-semibold">
         <div className={`w-2 h-2 rounded-full ${active ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-md-error'}`} />
         <span className={`tracking-wider uppercase text-[10px] ${active ? 'text-green-600 font-black' : 'text-md-on-surface-variant'}`}>{active ? 'Active Now' : 'Standby'}</span>
     </div>
@@ -68,7 +70,7 @@ const CustomSelect = ({ label, value, options, onChange, disabled }) => {
             onMouseLeave={() => setIsOpen(false)}
         >
             <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">{label}</label>
-            <div className={`flex items-center justify-between w-full bg-md-surface-container p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium transition-all ${!disabled && 'hover:border-brand-primary/50 cursor-pointer'}`}>
+            <div className={`flex items-center justify-between w-full bg-white p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium transition-all ${!disabled && 'hover:border-brand-primary/50 cursor-pointer'}`}>
                 <span className={value ? 'text-md-on-surface' : 'text-md-on-surface-variant opacity-50'}>
                     {value || `Select ${label}`}
                 </span>
@@ -81,7 +83,7 @@ const CustomSelect = ({ label, value, options, onChange, disabled }) => {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-50 left-0 right-0 mt-2 bg-md-surface-container-high border border-md-outline/10 rounded-2xl shadow-2xl overflow-hidden py-2"
+                        className="absolute z-50 left-0 right-0 mt-2 bg-slate-100 border border-md-outline/10 rounded-2xl shadow-2xl overflow-hidden py-2"
                     >
                         {options.map(opt => (
                             <button
@@ -103,11 +105,8 @@ const Dashboard = () => {
     const { user, logout, updateUser, updateProfile } = useAuth();
     const navigate = useNavigate();
     const { coords, city, fullAddress, error: geoError, refresh: refreshGeo, loading: geoLoading } = useGeolocation();
-    const [attendance, setAttendance] = useState(() => {
-        // Hydrate from localStorage for instant-on persistence
-        const cached = localStorage.getItem('attendance_cache');
-        return cached ? JSON.parse(cached) : [];
-    });
+    const [attendance, setAttendance] = useState([]);
+    const isCheckedIn = attendance[0] && !attendance[0].checkOut;
     const [loading, setLoading] = useState(false);
     const [checkStatus, setCheckStatus] = useState(null);
     const [statusMessage, setStatusMessage] = useState('');
@@ -116,7 +115,7 @@ const Dashboard = () => {
     const [sessionTimer, setSessionTimer] = useState('00:00:00');
     const [currentSessionMetrics, setCurrentSessionMetrics] = useState({ hours: 0, overtime: 0 });
 
-    const isAfterTenThirty = currentTime.getHours() > 10 || (currentTime.getHours() === 10 && currentTime.getMinutes() >= 30);
+    const isAfterTenThirty = false; // TEMPORARILY DISABLED FOR TESTING
 
     // Profile Edit State
     const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -204,16 +203,16 @@ const Dashboard = () => {
         if (attendance.length === 0) setLoading(true);
         try {
             const res = await api.get('/attendance/my');
-            const data = res.data.data || [];
+            let data = res.data.data || [];
+            
             if (JSON.stringify(data) !== JSON.stringify(attendance)) {
                 setAttendance(data);
-                localStorage.setItem('attendance_cache', JSON.stringify(data));
             }
         } catch (err) {
             console.error('Failed to fetch attendance', err);
             // Handle network link loss explicitly
             if (!err.response && err.request) {
-                setStatusMessage('Nexus Link Terminal Error: Connecting to API Node failed.');
+                setStatusMessage('Nexus Link Terminal Error: Connecting to API Node failed. Operating in Offline Mode.');
                 setCheckStatus('error');
             }
             if (err.response?.status === 401) {
@@ -223,6 +222,11 @@ const Dashboard = () => {
             setLoading(false);
         }
     };
+
+    const [showSiteDetailsModal, setShowSiteDetailsModal] = useState(false);
+    const [siteDetails, setSiteDetails] = useState({ duration: '8 Hours', issues: '' });
+    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+    const [popupMessage, setPopupMessage] = useState({ title: '', subtitle: '' });
 
     const handleCheckAction = async (type) => {
         if (type === 'in' && isAfterTenThirty) {
@@ -237,35 +241,104 @@ const Dashboard = () => {
             return;
         }
 
-        setCheckStatus('pending');
-        try {
-            if (type === 'in') {
-                await api.post('/attendance', {
+        if (type === 'in') {
+            setCheckStatus('pending');
+            try {
+                const res = await api.post('/attendance', {
                     latitude: coords.latitude,
                     longitude: coords.longitude,
                     locationName: fullAddress,
                     timestamp: new Date().toISOString(),
+                    siteDetails: { duration: '8 Hours', issues: '' }
                 });
-            } else {
-                const latest = attendance[0];
-                if (!latest || latest.checkOut) {
-                    throw new Error('No active session detected');
-                }
-                await api.put(`/attendance/checkout/${latest._id}`);
+
+                const newSession = res.data.data;
+                setAttendance(prev => [newSession, ...prev]);
+                
+                setCheckStatus('success');
+                setStatusMessage('');
+                setPopupMessage({ title: 'Success!', subtitle: 'Your attendance has been marked.' });
+                setShowSuccessPopup(true);
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.5 },
+                    colors: ['#2563EB', '#10b981', '#ffffff'],
+                    zIndex: 10000
+                });
+                setTimeout(() => setShowSuccessPopup(false), 4000);
+            } catch (err) {
+                setCheckStatus('error');
+                console.error('Attendance failed:', err);
+                setStatusMessage(err.response?.data?.error || err.message || 'Operational Sequence Interrupted.');
             }
+            return;
+        }
+
+        setCheckStatus('pending');
+        try {
+            const latest = attendance[0];
+            if (!latest || latest.checkOut) {
+                throw new Error('No active session detected');
+            }
+            
+            const res = await api.put(`/attendance/checkout/${latest._id}`);
+
+            setAttendance(prev => {
+                const newAtt = [...prev];
+                newAtt[0] = res.data.data;
+                return newAtt;
+            });
 
             setCheckStatus('success');
-            setStatusMessage(type === 'in' ? 'Clock-in successful. Session Tracking active.' : 'Session Finalized. Redirecting to Home...');
-
-            if (type === 'out') {
-                // Auto-Logout and Redirect Protocol
-                setTimeout(() => {
-                    logout();
-                    navigate('/');
-                }, 2000);
+            setStatusMessage('');
+            
+            setPopupMessage({ title: 'Shift Ended', subtitle: 'Your check-out has been recorded.' });
+            setShowSuccessPopup(true);
+            setTimeout(() => {
+                setShowSuccessPopup(false);
+            }, 3000);
+        } catch (err) {
+            setCheckStatus('error');
+            const isNetworkError = !err.response && err.request;
+            if (isNetworkError) {
+                setStatusMessage('Nexus Link Failure: Backend offline or unreachable.');
             } else {
-                fetchAttendance();
+                setStatusMessage(err.response?.data?.error || err.message || 'Operational Sequence Interrupted.');
             }
+            console.error('Attendance action failed:', err);
+        }
+    };
+
+    const submitSiteDetails = async () => {
+        setShowSiteDetailsModal(false);
+        setCheckStatus('pending');
+        try {
+            await api.post('/attendance', {
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                locationName: fullAddress,
+                timestamp: new Date().toISOString(),
+                siteDetails: siteDetails // Pass it down, even if backend ignores it right now
+            });
+
+            // Optimistically update the dummy data so it reflects instantly
+            const newSession = {
+                _id: Date.now().toString(),
+                timestamp: new Date().toISOString(),
+                locationName: fullAddress || 'Unknown Location',
+                location: { coordinates: [coords.longitude, coords.latitude] },
+                siteDetails: siteDetails,
+                totalHours: 0,
+                overtime: 0,
+                checkOut: null
+            };
+            
+            setAttendance([newSession, ...attendance]);
+            localStorage.setItem('attendance_cache', JSON.stringify([newSession, ...attendance]));
+            
+            setCheckStatus('success');
+            setStatusMessage('Clock-in successful. Site Details logged.');
         } catch (err) {
             setCheckStatus('error');
             const isNetworkError = !err.response && err.request;
@@ -337,8 +410,6 @@ const Dashboard = () => {
         };
     }, [attendance]);
 
-    const isCheckedIn = attendance[0] && !attendance[0].checkOut;
-
     const handleProfileUpdate = async () => {
         setIsSavingProfile(true);
         try {
@@ -368,55 +439,35 @@ const Dashboard = () => {
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-10 mb-16"
+                    className="flex flex-col items-center text-center justify-center gap-6 mb-10 mt-4 md:mt-8"
                 >
-                    <div className="flex items-center gap-10">
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate('/')}
-                            className="w-14 h-14 m3-card-elevated flex items-center justify-center text-md-on-surface-variant hover:text-brand-primary transition-colors bg-md-surface-container-low border-0"
-                        >
-                            <ArrowLeft size={24} />
-                        </motion.button>
-                        <div>
-                            <div className="flex items-center gap-3 mb-2.5">
-                                <StatusBadge active={isCheckedIn} />
-                                <span className="text-brand-primary/60 font-bold text-[10px] uppercase tracking-widest">Authenticated node</span>
-                            </div>
-                            <h1 className="text-4xl md:text-5xl font-bold text-md-on-surface tracking-tight mb-1">
-                                Operational <span className="text-brand-primary">Nexus</span>
-                            </h1>
-                            <p className="text-md-on-surface-variant font-medium text-sm flex items-center gap-2">
-                                <ShieldCheck size={16} className="text-brand-primary" /> Employee: {user?.name}
-                            </p>
+                    <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-3 mb-6">
+                            <StatusBadge active={isCheckedIn} />
+                            <span className="text-brand-primary/60 font-bold text-[10px] uppercase tracking-widest">Authenticated node</span>
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <div className="m3-card-filled px-8 py-4 flex items-center gap-8 bg-md-surface-container-low border border-md-outline/10 h-20">
-                            <MovingClockIcon time={currentTime} />
-                            <div className="border-l border-md-outline/10 pl-8 h-full flex flex-col justify-center">
-                                <p className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest mb-1">System Time</p>
-                                <p className="text-3xl font-bold text-md-on-surface font-mono leading-none tracking-tighter">
-                                    {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
-                                </p>
-                            </div>
-                        </div>
-
+                        <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-3">
+                            SN Enviro <span className="text-brand-primary">Portal</span>
+                        </h1>
+                        <p className="text-slate-500 font-medium text-sm flex items-center justify-center gap-2 max-w-sm">
+                            <ShieldCheck size={16} className="text-brand-primary" /> Secure Enterprise Access
+                        </p>
                     </div>
                 </motion.div>
+
+
 
                 {/* M3 Tab Navigation */}
                 <div className="flex items-center gap-3 mb-10 overflow-x-auto pb-4 scrollbar-hide">
                     {[
                         { id: 'attendance', label: 'Attendance Feed', icon: Activity },
                         { id: 'control', label: 'Control Panel', icon: ShieldCheck },
+                        { id: 'leaves', label: 'Leaves Hub', icon: Calendar },
                         { id: 'profile', label: 'Profile Identity', icon: User },
                         { id: 'finance', label: 'Payroll Hub', icon: Wallet },
                     ].filter(tab => {
                         if (user?.role === 'Admin') {
-                            return !['attendance', 'control'].includes(tab.id);
+                            return !['attendance', 'control', 'leaves'].includes(tab.id);
                         }
                         return true;
                     }).map((tab) => (
@@ -438,338 +489,100 @@ const Dashboard = () => {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="grid lg:grid-cols-12 gap-8"
+                            className="flex flex-col items-center justify-center max-w-md mx-auto w-full pt-4 md:pt-10 pb-20"
                         >
-                            {/* Check-in Section */}
-                            <div className="lg:col-span-4 space-y-8">
-                                <div className="m3-card-filled p-10 bg-md-surface-container-low border border-md-outline/10 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-48 h-48 bg-brand-primary/5 rounded-full -mr-24 -mt-24 blur-3xl" />
+                            <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 w-full border border-slate-100 relative overflow-hidden flex flex-col items-center text-center group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                                
+                                <h3 className="text-3xl font-medium text-slate-800 mb-2 tracking-tight relative z-10 font-serif">
+                                    {isCheckedIn ? 'Shift Active' : 'Ready to Work?'}
+                                </h3>
+                                <p className="text-slate-500 font-light text-sm mb-8 relative z-10">
+                                    {isCheckedIn ? 'You are currently logged in.' : 'Verify your location and login.'}
+                                </p>
 
-                                    <div className="relative z-10">
-                                        <div className="flex items-center justify-between mb-10">
-                                            <div>
-                                                <span className="text-[10px] text-brand-primary font-bold tracking-widest uppercase mb-1 block">Security Access</span>
-                                                <h3 className="text-2xl font-bold text-md-on-surface tracking-tight">System Presence</h3>
-                                            </div>
-                                            <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                                                <Timer size={24} className={isCheckedIn ? 'animate-pulse' : ''} />
-                                            </div>
+                                <div className="w-full bg-slate-50 rounded-[24px] p-6 mb-8 border border-slate-100 flex flex-col items-center relative z-10">
+                                    <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center text-blue-600 mb-4">
+                                        <MapPin size={28} strokeWidth={1.5} />
+                                    </div>
+                                    
+                                    {geoLoading ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 size={24} className="animate-spin text-slate-400" />
+                                            <span className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Login</span>
                                         </div>
-
-                                        <div className="bg-md-surface-container p-6 rounded-[24px] mb-10 border border-md-outline/5 relative group/geo">
-                                            <div className="flex items-start gap-4 mb-4">
-                                                <div className="w-11 h-11 rounded-xl bg-md-surface-container-high flex items-center justify-center text-brand-primary shadow-sm">
-                                                    <MapPin size={22} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest mb-1">Current Coordinates</p>
-                                                    <p className="text-md-on-surface font-bold text-sm leading-snug truncate">{geoLoading ? 'Acquiring Lock...' : (fullAddress || 'Satellite Sync Standby')}</p>
-                                                </div>
+                                    ) : coords ? (
+                                        <>
+                                            <h4 className="text-lg font-bold text-slate-800 mb-1">{city || 'Location Active'}</h4>
+                                            <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 mt-2 mb-3">
+                                                <span>Lat: {coords.latitude.toFixed(4)}</span>
+                                                <div className="w-1 h-1 rounded-full bg-slate-300" />
+                                                <span>Lng: {coords.longitude.toFixed(4)}</span>
                                             </div>
-
-                                            {/* M3 Map Integration */}
-                                            <div className="w-full h-36 rounded-2xl overflow-hidden m3-card-outlined border-md-outline/10 mb-4 relative">
-                                                {coords ? (
-                                                    <iframe
-                                                        title="Location Satellite"
-                                                        width="100%"
-                                                        height="100%"
-                                                        frameBorder="0"
-                                                        scrolling="no"
-                                                        src={`https://maps.google.com/maps?q=${coords.latitude},${coords.longitude}&z=15&output=embed`}
-                                                        className="grayscale brightness-110 opacity-80"
-                                                        style={{ filter: 'grayscale(0.5) contrast(1.1) brightness(1.05)' }}
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full bg-md-surface-variant/20 flex flex-col items-center justify-center opacity-30">
-                                                        <Globe size={32} className="animate-spin-slow mb-2" />
-                                                        <span className="text-[10px] font-bold uppercase tracking-widest">Signal Search</span>
-                                                    </div>
-                                                )}
-                                                <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-white/5" />
-                                            </div>
-
-                                            {geoLoading && (
-                                                <div className="h-1 w-full bg-md-outline/5 rounded-full overflow-hidden">
-                                                    <motion.div
-                                                        animate={{ x: ['-100%', '100%'] }}
-                                                        transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                                                        className="h-full w-1/3 bg-brand-primary"
-                                                    />
+                                            
+                                            {/* Daily Login Time Indicator */}
+                                            {dailyRecords[0] && (
+                                                <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full mt-2">
+                                                    <Clock size={14} /> 
+                                                    Login Time: {new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             )}
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2 text-rose-400">
+                                            <Globe size={24} />
+                                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Location Required</span>
                                         </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <motion.button
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => handleCheckAction('in')}
-                                                disabled={checkStatus === 'pending' || geoLoading || isCheckedIn}
-                                                className={`flex flex-col items-center justify-center gap-2 py-5 rounded-2xl font-bold uppercase tracking-widest transition-all ${(isCheckedIn || isAfterTenThirty) ? 'bg-md-surface-container-high text-md-on-surface-variant/40' : 'bg-brand-primary text-brand-on-primary shadow-lg shadow-brand-primary/20'}`}
-                                            >
-                                                <LogIn size={22} />
-                                                <span className="text-[10px]">Login</span>
-                                            </motion.button>
-                                            <motion.button
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => handleCheckAction('out')}
-                                                disabled={checkStatus === 'pending' || geoLoading || !isCheckedIn}
-                                                className={`flex flex-col items-center justify-center gap-2 py-5 rounded-2xl font-bold uppercase tracking-widest transition-all ${!isCheckedIn ? 'bg-md-surface-container-high text-md-on-surface-variant/40' : 'bg-md-error text-md-on-error shadow-lg shadow-md-error/20'}`}
-                                            >
-                                                <LogOut size={22} />
-                                                <span className="text-[10px]">Logout</span>
-                                            </motion.button>
-                                        </div>
-
-                                        <div className="mt-8 p-6 bg-md-error/10 rounded-[28px] border-2 border-md-error/30 shadow-2xl shadow-md-error/5 text-center">
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="w-14 h-14 bg-md-error/20 rounded-full flex items-center justify-center text-md-error mb-1">
-                                                    <AlertCircle size={32} strokeWidth={3} />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-[12px] text-md-error font-black uppercase tracking-[0.3em]">CRITICAL OPERATION WARNING</p>
-                                                    <p className="text-[11px] text-md-on-surface font-extrabold leading-relaxed tracking-wider px-2">
-                                                        MUST READ: Finalize your work shift ONLY ONCE. Your first login and final logout are the only data points saved per day. Multiple cycles are strictly prohibited for data integrity.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <AnimatePresence>
-                                            {statusMessage && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.95 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    className={`mt-8 p-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-center flex items-center justify-center gap-2.5 border ${checkStatus === 'error' ? 'bg-md-error-container text-md-on-error-container border-md-error/20' : 'bg-brand-primary-container/20 text-brand-primary border-brand-primary/20'}`}
-                                                >
-                                                    {checkStatus === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
-                                                    {statusMessage}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
+                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="m3-card-elevated p-6 bg-md-surface-container-lowest border border-md-outline/5 hover:bg-md-primary-container/10 transition-colors group">
-                                        <p className="text-[9px] text-md-on-surface-variant font-black uppercase tracking-widest mb-3 group-hover:text-brand-primary transition-colors">Digital Chronograph</p>
-                                        <div className="flex items-baseline gap-2 overflow-hidden">
-                                            <h4 className={`text-2xl sm:text-3xl font-bold truncate ${isCheckedIn ? 'text-brand-primary font-mono' : 'text-md-on-surface'}`}>
-                                                {isCheckedIn ? currentSessionMetrics.totalTimer : stats.total}
-                                            </h4>
-                                            <span className="text-[10px] text-md-on-surface-variant font-bold uppercase shrink-0">{isCheckedIn ? '' : 'HRS'}</span>
-                                        </div>
-                                    </div>
-                                    <div className="m3-card-elevated p-6 bg-md-surface-container-lowest border border-md-outline/5 hover:bg-md-tertiary-container/10 transition-colors group">
-                                        <p className="text-[9px] text-md-on-surface-variant font-black uppercase tracking-widest mb-3 group-hover:text-brand-tertiary transition-colors">Overtime Load</p>
-                                        <div className="flex items-baseline gap-2 overflow-hidden">
-                                            <h4 className={`text-2xl sm:text-3xl font-bold truncate ${isCheckedIn && currentSessionMetrics.overtime > 0 ? 'text-brand-tertiary font-mono' : 'text-md-on-surface/40'}`}>
-                                                {isCheckedIn ? currentSessionMetrics.otTimer : stats.ot}
-                                            </h4>
-                                            <span className="text-[10px] text-md-on-surface-variant font-bold uppercase shrink-0">{isCheckedIn ? '' : 'OT'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                {!isCheckedIn && (
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => !coords ? refreshGeo() : handleCheckAction('in')}
+                                        disabled={checkStatus === 'pending' || geoLoading || isAfterTenThirty}
+                                        className={`w-full py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-extrabold text-[11px] sm:text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 relative z-10 overflow-hidden group ${
+                                            !coords
+                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_8px_30px_rgba(79,70,229,0.3)] border border-blue-400/50 hover:shadow-[0_8px_40px_rgba(79,70,229,0.4)]'
+                                                : isAfterTenThirty 
+                                                    ? 'bg-slate-50/80 backdrop-blur-md text-slate-400 cursor-not-allowed border border-slate-200/50 shadow-inner'
+                                                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-[0_8px_30px_rgba(16,185,129,0.3)] border border-emerald-400/50 hover:shadow-[0_8px_40px_rgba(16,185,129,0.4)] hover:-translate-y-1'
+                                        }`}
+                                    >
+                                        {/* Shimmer sweep effect */}
+                                        {(!isAfterTenThirty && !checkStatus && !geoLoading) && (
+                                            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+                                        )}
 
-                            {/* Feed Section */}
-                            <div className="lg:col-span-8">
-                                <div className="m3-card-filled bg-md-surface-container-low border border-md-outline/10 flex flex-col h-full overflow-hidden">
-                                    <div className="p-8 md:p-10 border-b border-md-outline/5 flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-md-on-surface tracking-tight">Recent Sessions</h3>
-                                            <p className="text-[11px] text-md-on-surface-variant font-bold uppercase tracking-widest mt-1">Live Data</p>
-                                        </div>
-                                        <button onClick={fetchAttendance} className="w-12 h-12 m3-card-elevated flex items-center justify-center bg-md-surface-container hover:bg-md-surface-container-high transition-colors">
-                                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                                        </button>
-                                    </div>
-
-                                    {/* Feed Metrics Dashboard Row */}
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 px-10 py-8 bg-md-surface-container/50 border-b border-md-outline/5">
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] text-md-on-surface-variant font-black uppercase tracking-widest mb-1.5 opacity-50">Operating Days</span>
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className="text-xl font-bold text-md-on-surface">{stats.days}</span>
-                                                <span className="text-[9px] text-md-on-surface-variant font-bold uppercase">Days</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] text-md-on-surface-variant font-black uppercase tracking-widest mb-1.5 opacity-50">Avg Session</span>
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className="text-xl font-bold text-md-on-surface">{stats.avg}</span>
-                                                <span className="text-[9px] text-md-on-surface-variant font-bold uppercase">Hrs</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] text-md-on-surface-variant font-black uppercase tracking-widest mb-1.5 opacity-50">Active OT</span>
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className="text-xl font-bold text-md-secondary">{stats.ot}</span>
-                                                <span className="text-[9px] text-md-on-surface-variant font-bold uppercase">Load</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] text-md-on-surface-variant font-black uppercase tracking-widest mb-1.5 opacity-50">Stream Status</span>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
-                                                <span className="text-[10px] font-bold text-brand-primary uppercase tracking-widest"> Sync</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 p-6 md:p-8 overflow-y-auto custom-scrollbar">
-                                        <div className="hidden md:block">
-                                            <table className="w-full border-separate border-spacing-y-4">
-                                                <thead>
-                                                    <tr>
-                                                        <th className="px-6 pb-2 text-[10px] font-bold uppercase tracking-widest text-md-on-surface-variant">Log Timeline</th>
-                                                        <th className="px-6 pb-2 text-[10px] font-bold uppercase tracking-widest text-md-on-surface-variant text-center">Operational Window</th>
-                                                        <th className="px-6 pb-2 text-[10px] font-bold uppercase tracking-widest text-md-on-surface-variant">Geo Location</th>
-                                                        <th className="px-6 pb-2 text-[10px] font-bold uppercase tracking-widest text-md-on-surface-variant text-right">Metrics</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {loading ? (
-                                                        <tr><td colSpan="4" className="py-24 text-center">
-                                                            <div className="flex flex-col items-center gap-4">
-                                                                <Loader2 size={40} className="text-brand-primary animate-spin" />
-                                                                <span className="text-[11px] font-bold uppercase tracking-widest text-md-on-surface-variant">Syncing Streams...</span>
-                                                            </div>
-                                                        </td></tr>
-                                                    ) : dailyRecords.length > 0 ? (
-                                                        dailyRecords.map((record, i) => (
-                                                            <motion.tr
-                                                                key={record._id}
-                                                                initial={{ opacity: 0, x: -10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                transition={{ delay: i * 0.05 }}
-                                                                className="group hover:bg-md-surface-variant/10 transition-colors"
-                                                            >
-                                                                <td className="px-6 py-6 m3-card-outlined rounded-r-none border-r-0 border-md-outline/10 bg-md-surface-container-lowest animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
-                                                                    <div className="flex flex-col">
-                                                                        <span className="text-md-on-surface font-black text-sm tracking-tight">{new Date(record.timestamp).toLocaleString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()}</span>
-                                                                        <span className="text-[10px] text-brand-primary font-bold uppercase tracking-widest">{new Date(record.timestamp).getFullYear()}</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-6 m3-card-outlined rounded-none border-x-0 border-md-outline/10 bg-md-surface-container-lowest">
-                                                                    <div className="flex items-center justify-center gap-4">
-                                                                        <div className="flex flex-col items-end">
-                                                                            <span className="text-md-on-surface font-mono text-xs font-bold">{new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
-                                                                            <span className="text-[8px] text-brand-primary uppercase font-black tracking-widest opacity-70">LOGIN TIME</span>
-                                                                        </div>
-                                                                        <div className="w-8 h-[2px] bg-md-outline/10 rounded-full" />
-                                                                        <div className="flex flex-col items-start">
-                                                                            <span className={`font-mono text-xs font-bold ${record.checkOut ? 'text-brand-tertiary' : 'text-green-500 animate-pulse'}`}>
-                                                                                {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : 'PRESENT'}
-                                                                            </span>
-                                                                            <span className="text-[8px] text-brand-tertiary uppercase font-black tracking-widest opacity-70">LOGOUT TIME</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-6 m3-card-outlined rounded-none border-x-0 border-md-outline/10 bg-md-surface-container-lowest">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-8 h-8 rounded-full bg-md-secondary-container/30 flex items-center justify-center text-md-secondary">
-                                                                            <MapPin size={14} />
-                                                                        </div>
-                                                                        <span className="text-[10px] font-bold text-md-on-surface uppercase tracking-tight truncate max-w-[120px]">
-                                                                            {record.locationName}
-                                                                        </span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-6 m3-card-outlined rounded-l-none border-l-0 border-md-outline/10 text-right bg-md-surface-container-lowest">
-                                                                    <div className="flex flex-col items-end">
-                                                                        <span className="text-md-on-surface font-black text-lg leading-none">{record.totalHours?.toFixed(1) || '0.0'}</span>
-                                                                        <span className="text-[9px] text-md-on-surface-variant font-bold uppercase tracking-widest leading-none mt-1">Total Hrs</span>
-                                                                    </div>
-                                                                </td>
-                                                            </motion.tr>
-                                                        ))
-                                                    ) : (
-                                                        <tr><td colSpan="4" className="py-24 text-center">
-                                                            <div className="flex flex-col items-center gap-4 opacity-10">
-                                                                <Activity size={48} />
-                                                                <span className="text-[11px] font-bold uppercase tracking-widest">No Stream Data Detected</span>
-                                                            </div>
-                                                        </td></tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        {/* Mobile Card Feed */}
-                                        <div className="md:hidden space-y-6">
-                                            {loading ? (
-                                                <div className="py-24 text-center">
-                                                    <Loader2 size={40} className="text-brand-primary mx-auto animate-spin mb-4" />
-                                                    <span className="text-[11px] font-bold uppercase tracking-widest text-md-on-surface-variant">Syncing Streams...</span>
-                                                </div>
-                                            ) : dailyRecords.length > 0 ? (
-                                                dailyRecords.map((record, i) => (
-                                                    <motion.div
-                                                        key={record._id}
-                                                        initial={{ opacity: 0, y: 10 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ delay: i * 0.05 }}
-                                                        className="m3-card-outlined p-6 flex flex-col gap-5 border-md-outline/10 bg-md-surface-container-lowest/50"
-                                                    >
-                                                        <div className="flex items-center justify-between border-b border-md-outline/5 pb-4">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-md-on-surface font-black text-lg">
-                                                                    {new Date(record.timestamp).toLocaleString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()}
-                                                                </span>
-                                                                <span className="text-[9px] text-md-on-surface-variant font-bold uppercase tracking-[0.2em]">{new Date(record.timestamp).getFullYear()}</span>
-                                                            </div>
-                                                            <div className="flex items-baseline gap-1.5 px-4 py-2 bg-brand-primary/10 rounded-full text-brand-primary">
-                                                                <span className="text-xl font-black">{record.totalHours?.toFixed(1) || '0.0'}</span>
-                                                                <span className="text-[9px] font-bold uppercase">HRS</span>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[9px] text-brand-primary font-black uppercase tracking-widest mb-1.5">LOGIN</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-2 h-2 rounded-full bg-brand-primary shadow-sm" />
-                                                                    <span className="text-md-on-surface font-mono font-bold text-sm tracking-tight">{new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[9px] text-brand-tertiary font-black uppercase tracking-widest mb-1.5">LOGOUT</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={`w-2 h-2 rounded-full shadow-sm ${record.checkOut ? 'bg-brand-tertiary shadow-brand-tertiary/40' : 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]'}`} />
-                                                                    <span className={`text-sm font-mono font-bold tracking-tight ${record.checkOut ? 'text-brand-tertiary' : 'text-green-500 animate-pulse'}`}>
-                                                                        {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : 'PRESENT'}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-start gap-3 bg-md-surface-container p-3 rounded-xl border border-md-outline/5">
-                                                            <MapPin size={14} className="text-brand-primary mt-0.5 shrink-0" />
-                                                            <span className="text-[10px] font-bold text-md-on-surface-variant uppercase tracking-tight leading-relaxed">
-                                                                {record.locationName}
-                                                            </span>
-                                                        </div>
-
-                                                        {record.overtime > 0 && (
-                                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-md-secondary-container/30 text-md-secondary rounded-lg">
-                                                                <Activity size={12} />
-                                                                <span className="text-[9px] font-bold uppercase tracking-[0.2em]">+{record.overtime.toFixed(1)} OT Load Detected</span>
-                                                            </div>
-                                                        )}
-                                                    </motion.div>
-                                                ))
+                                        <div className="relative z-10 flex items-center justify-center gap-3 w-full">
+                                            {checkStatus === 'pending' || geoLoading ? (
+                                                <Loader2 className="animate-spin" size={20} />
+                                            ) : !coords ? (
+                                                <>
+                                                    <Globe size={18} strokeWidth={2.5} /> Initiate Login
+                                                </>
                                             ) : (
-                                                <div className="py-24 text-center opacity-10">
-                                                    <Activity size={48} className="mx-auto mb-4" />
-                                                    <span className="text-[11px] font-bold uppercase tracking-widest">No Stream Data Detected</span>
-                                                </div>
+                                                <>
+                                                    <LogIn size={18} strokeWidth={2.5} /> Mark Checkin
+                                                </>
                                             )}
                                         </div>
-                                    </div>
-                                </div>
+                                    </motion.button>
+                                )}
+                                
+                                <AnimatePresence>
+                                    {statusMessage && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, height: 0 }}
+                                            animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                            exit={{ opacity: 0, y: -10, height: 0 }}
+                                            className={`mt-4 w-full text-center relative z-10 ${checkStatus === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}
+                                        >
+                                            <span className="text-xs font-medium">{statusMessage}</span>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </motion.div>
                     )}
@@ -782,9 +595,9 @@ const Dashboard = () => {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-8"
                         >
-                            <div className="grid md:grid-cols-3 gap-8">
-                                <div className="m3-card-elevated p-8 bg-md-surface-container-low border-md-outline/5 transition-all">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-brand-primary mb-6">Total Efficiency</h4>
+                            <div className="grid md:grid-cols-1 gap-6">
+                                <div className="m3-card-elevated p-6 md:p-8 bg-slate-50 border-md-outline/5 transition-all flex flex-col items-center text-center">
+                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-brand-primary mb-6">Total Session Duration</h4>
                                     <div className="flex items-baseline gap-3 overflow-hidden">
                                         <span className="text-4xl sm:text-5xl font-mono font-bold text-md-on-surface tracking-tighter truncate">{currentSessionMetrics.totalTimer}</span>
                                     </div>
@@ -793,51 +606,16 @@ const Dashboard = () => {
                                         <span className="text-[9px] font-bold text-md-on-surface-variant uppercase tracking-widest">Min</span>
                                         <span className="text-[9px] font-bold text-md-on-surface-variant uppercase tracking-widest">Sec</span>
                                     </div>
-                                    <p className="text-xs font-medium text-md-on-surface-variant italic">Live Operational Pulse: Computing net efficiency...</p>
-                                </div>
-                                <div className="m3-card-elevated p-8 bg-md-surface-container-low border-md-outline/5 transition-all">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-md-on-surface-variant mb-6">Total Payload (HRS)</h4>
-                                    <div className="flex items-baseline gap-3 overflow-hidden">
-                                        <span className="text-4xl sm:text-5xl font-bold text-md-on-surface tracking-tighter truncate">{currentSessionMetrics.hours}</span>
-                                        <span className="text-sm font-bold text-md-on-surface-variant uppercase">HR</span>
-                                    </div>
-                                    <p className="mt-6 text-xs font-medium text-md-on-surface-variant">Cumulative decimal representation of current session.</p>
-                                </div>
-                                <div className="m3-card-elevated p-8 bg-md-surface-container-low border-md-outline/5">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-md-secondary mb-6">Overtime Detection</h4>
-                                    <div className="flex items-baseline gap-3 overflow-hidden">
-                                        <span className={`text-4xl sm:text-5xl font-mono font-bold tracking-tighter truncate ${currentSessionMetrics.overtime > 0 ? 'text-md-secondary' : 'text-md-on-surface/20'}`}>
-                                            {currentSessionMetrics.otTimer}
-                                        </span>
-                                    </div>
-                                    <div className="flex gap-4 mt-2">
-                                        <span className="text-[9px] font-bold text-md-on-surface-variant uppercase tracking-widest">OT Load</span>
-                                    </div>
-                                    <p className="mt-6 text-xs font-medium text-md-on-surface-variant">Automatic OT activation for activity detected after 18:00.</p>
-                                </div>
-                            </div>
-
-                            <div className="m3-card-outlined p-10 border-md-outline/10 bg-md-surface-container-lowest/30">
-                                <div className="flex flex-col md:flex-row gap-12 items-center">
-                                    <div className="flex-1 space-y-6">
-                                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-md-secondary-container/20 text-md-secondary text-[10px] font-bold uppercase tracking-widest">
-                                            <Zap size={14} fill="currentColor" /> System Health Optimal
-                                        </div>
-                                        <h3 className="text-3xl font-bold text-md-on-surface tracking-tight">Identity & Metric Synchronization</h3>
-                                        <p className="text-md-on-surface-variant leading-relaxed">
-                                            The Control Panel provides a real-time visualization of your operational telemetry.
-                                            All metrics are synchronized directly with the primary node cluster every 1000ms.
-                                        </p>
-                                    </div>
-                                    <div className="w-full md:w-64 flex flex-col gap-4">
-                                        <div className="p-6 rounded-[24px] bg-md-surface-container-high border border-md-outline/5 text-center">
-                                            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-md-on-surface-variant mb-2">Network State</p>
-                                            <div className="flex items-center justify-center gap-2 text-brand-primary">
-                                                <Globe size={16} className="animate-spin-slow" />
-                                                <span className="text-sm font-bold">SN-NET / ACTIVE</span>
+                                    <p className="text-xs font-medium text-md-on-surface-variant italic">Live tracking of your current work session.</p>
+                                    
+                                    {dailyRecords[0] && (
+                                        <div className="mt-8 pt-6 border-t border-slate-200 w-full max-w-sm">
+                                            <div className="flex justify-between items-center text-sm font-medium">
+                                                <span className="text-slate-500 flex items-center gap-2"><Clock size={16}/> Daily Login Time:</span>
+                                                <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full">{new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>
@@ -846,188 +624,24 @@ const Dashboard = () => {
                     {activeTab === 'profile' && (
                         <motion.div
                             key="profile"
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.98 }}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
                             className="max-w-4xl mx-auto"
                         >
-                            <div className="m3-card-filled p-8 md:p-10 bg-md-surface-container-low border border-md-outline/10 rounded-[32px] overflow-hidden relative shadow-lg">
-                                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-brand-primary/5 rounded-full -mr-32 -mt-32 blur-[100px]" />
+                            <ProfileCard attendanceData={attendance} />
+                        </motion.div>
+                    )}
 
-                                <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
-                                    <div className="relative group shrink-0">
-                                        <div className="w-32 h-32 md:w-36 md:h-36 rounded-[32px] bg-gradient-to-br from-brand-primary/20 via-brand-primary/5 to-transparent border-2 border-brand-primary/20 flex items-center justify-center text-brand-primary text-5xl font-bold shadow-2xl relative overflow-hidden group-hover:scale-105 transition-transform duration-500">
-                                            {profileData.name ? profileData.name.charAt(0) : <User size={48} />}
-                                        </div>
-                                        <div className={`absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg border-2 border-md-outline/10 transition-all duration-300 ${isEditingProfile ? 'bg-md-error text-white' : 'bg-md-surface-container-high text-brand-primary'}`}>
-                                            <Zap size={18} fill="currentColor" strokeWidth={0} />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 w-full space-y-6">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                            <div className="space-y-1">
-                                                <span className="px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-[9px] font-black uppercase tracking-widest border border-brand-primary/20">
-                                                    {user?.role} NODE
-                                                </span>
-                                                <h2 className="text-2xl md:text-3xl font-bold text-md-on-surface tracking-tight">{user?.name}</h2>
-                                            </div>
-                                            <button
-                                                onClick={() => isEditingProfile ? handleProfileUpdate() : setIsEditingProfile(true)}
-                                                className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all ${isEditingProfile ? 'bg-md-error text-white' : 'bg-brand-primary text-brand-on-primary'}`}
-                                                disabled={isSavingProfile}
-                                            >
-                                                {isSavingProfile ? <Loader2 size={16} className="animate-spin" /> : (isEditingProfile ? <Save size={16} /> : <Edit size={16} />)}
-                                                {isEditingProfile ? 'Save' : 'Edit Profile'}
-                                            </button>
-                                        </div>
-
-                                        <AnimatePresence>
-                                            {statusMessage && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.95 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    className={`mb-6 p-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest text-center flex items-center justify-center gap-2.5 border ${checkStatus === 'error' ? 'bg-md-error-container text-md-on-error-container border-md-error/20' : 'bg-brand-primary-container/20 text-brand-primary border-brand-primary/20'}`}
-                                                >
-                                                    {checkStatus === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
-                                                    {statusMessage}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 pt-6 border-t border-md-outline/10">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Name</label>
-                                                {isEditingProfile ? (
-                                                    <input type="text" value={profileData.name} onChange={(e) => setProfileData({ ...profileData, name: e.target.value })} className="w-full bg-md-surface-container p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30" />
-                                                ) : <p className="text-sm font-bold text-md-on-surface truncate">{user?.name}</p>}
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Email</label>
-                                                {isEditingProfile ? (
-                                                    <input type="email" value={profileData.email} onChange={(e) => setProfileData({ ...profileData, email: e.target.value })} className="w-full bg-md-surface-container p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30" />
-                                                ) : <p className="text-sm font-bold text-md-on-surface truncate">{user?.email}</p>}
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Mobile</label>
-                                                {isEditingProfile ? (
-                                                    <input type="text" value={profileData.phoneNumber} onChange={(e) => setProfileData({ ...profileData, phoneNumber: e.target.value })} className="w-full bg-md-surface-container p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30" />
-                                                ) : <p className="text-sm font-bold text-md-on-surface truncate">{user?.phoneNumber || 'Not Set'}</p>}
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Alternative Contact</label>
-                                                {isEditingProfile ? (
-                                                    <input type="text" value={profileData.alternativeContact} onChange={(e) => setProfileData({ ...profileData, alternativeContact: e.target.value })} className="w-full bg-md-surface-container p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30" />
-                                                ) : <p className="text-sm font-bold text-md-on-surface truncate">{user?.alternativeContact || 'Not Set'}</p>}
-                                            </div>
-                                            <CustomSelect
-                                                label="Blood Group"
-                                                value={profileData.bloodGroup}
-                                                options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']}
-                                                onChange={(val) => setProfileData({ ...profileData, bloodGroup: val })}
-                                                disabled={!isEditingProfile}
-                                            />
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">System Role</label>
-                                                {isEditingProfile ? (
-                                                    <select
-                                                        value={profileData.role}
-                                                        onChange={(e) => setProfileData({ ...profileData, role: e.target.value })}
-                                                        className="w-full bg-md-surface-container p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30"
-                                                    >
-                                                        {['Staff', 'Senior', 'Accountant', 'Admin', 'Application Engineer', 'Office Employee'].map(r => (
-                                                            <option key={r} value={r}>{r}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : <p className="text-sm font-bold text-brand-primary uppercase tracking-tight">{user?.role}</p>}
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Date of Joining</label>
-                                                {isEditingProfile ? (
-                                                    <input type="date" value={profileData.joiningDate} onChange={(e) => setProfileData({ ...profileData, joiningDate: e.target.value })} className="w-full bg-md-surface-container p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30" />
-                                                ) : <p className="text-sm font-bold text-md-on-surface">{user?.joiningDate ? new Date(user.joiningDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Not Set'}</p>}
-                                            </div>
-
-                                            <CustomSelect
-                                                label="Employment Type"
-                                                value={profileData.employmentType}
-                                                options={['Full-time', 'Part-time', 'Contract', 'Intern']}
-                                                onChange={(val) => setProfileData({ ...profileData, employmentType: val })}
-                                                disabled={!isEditingProfile}
-                                            />
-
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Grade/Level</label>
-                                                {isEditingProfile ? (
-                                                    <input type="text" placeholder="e.g., Junior, Lead" value={profileData.gradeLevel} onChange={(e) => setProfileData({ ...profileData, gradeLevel: e.target.value })} className="w-full bg-md-surface-container p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30" />
-                                                ) : <p className="text-sm font-bold text-md-on-surface">{user?.gradeLevel || 'Not Set'}</p>}
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Official Social Link</label>
-                                                {isEditingProfile ? (
-                                                    <div className="relative">
-                                                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 text-md-on-surface-variant opacity-40" size={14} />
-                                                        <input type="url" placeholder="LinkedIn / Portfolio" value={profileData.socialLinks} onChange={(e) => setProfileData({ ...profileData, socialLinks: e.target.value })} className="w-full bg-md-surface-container pl-10 p-2.5 rounded-xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30" />
-                                                    </div>
-                                                ) : profileData.socialLinks ? (
-                                                    <a href={profileData.socialLinks} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-brand-primary hover:underline text-sm font-bold">
-                                                        <Link2 size={14} /> View Identity Node
-                                                    </a>
-                                                ) : <p className="text-sm font-medium text-md-on-surface-variant opacity-40">No URL Linked</p>}
-                                            </div>
-
-                                            <div className="col-span-full space-y-1 pt-4">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Core Competencies</label>
-                                                {isEditingProfile ? (
-                                                    <input
-                                                        type="text"
-                                                        placeholder="e.g., JavaScript, React, System Design"
-                                                        value={profileData.coreCompetencies}
-                                                        onChange={(e) => setProfileData({ ...profileData, coreCompetencies: e.target.value })}
-                                                        className="w-full bg-md-surface-container p-3 rounded-2xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30"
-                                                    />
-                                                ) : (
-                                                    <div className="flex flex-wrap gap-2 pt-1">
-                                                        {user?.coreCompetencies ? user.coreCompetencies.split(',').map((skill, idx) => (
-                                                            <span key={idx} className="px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-[10px] font-bold uppercase tracking-widest border border-brand-primary/20">
-                                                                {skill.trim()}
-                                                            </span>
-                                                        )) : <p className="text-sm font-medium text-md-on-surface-variant opacity-40">No competencies listed.</p>}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="col-span-full space-y-1 pt-4">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Current Projects</label>
-                                                {isEditingProfile ? (
-                                                    <textarea
-                                                        rows={2}
-                                                        value={profileData.currentProjects}
-                                                        onChange={(e) => setProfileData({ ...profileData, currentProjects: e.target.value })}
-                                                        className="w-full bg-md-surface-container p-3 rounded-2xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30 resize-none"
-                                                        placeholder="List your active assignments or initiatives..."
-                                                    />
-                                                ) : <p className="text-sm font-bold text-md-on-surface leading-relaxed">{user?.currentProjects || 'No active projects detected.'}</p>}
-                                            </div>
-
-                                            <div className="col-span-full space-y-1 pt-4">
-                                                <label className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest opacity-40">Home Address</label>
-                                                {isEditingProfile ? (
-                                                    <textarea
-                                                        rows={3}
-                                                        value={profileData.homeAddress}
-                                                        onChange={(e) => setProfileData({ ...profileData, homeAddress: e.target.value })}
-                                                        className="w-full bg-md-surface-container p-3 rounded-2xl border border-md-outline/20 text-sm font-medium focus:ring-2 ring-brand-primary/30 resize-none"
-                                                        placeholder="Mailing address for identity verification..."
-                                                    />
-                                                ) : <p className="text-sm font-medium text-md-on-surface-variant leading-relaxed italic">{user?.homeAddress || 'No residency data synchronized.'}</p>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                    {activeTab === 'leaves' && (
+                        <motion.div
+                            key="leaves"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="max-w-6xl mx-auto"
+                        >
+                            <LeaveHub />
                         </motion.div>
                     )}
 
@@ -1045,6 +659,99 @@ const Dashboard = () => {
                     )}
                 </AnimatePresence>
             </div>
+
+            <AnimatePresence>
+                {showSuccessPopup && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="w-full sm:w-[400px] bg-white/95 backdrop-blur-3xl rounded-[32px] p-10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col items-center border border-white/60 text-center relative z-[9999]"
+                        >
+                            <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-teal-50 rounded-full flex items-center justify-center text-emerald-500 mb-5 shadow-[inset_0_4px_20px_rgba(16,185,129,0.1)] relative">
+                                <div className="absolute inset-0 bg-emerald-400 rounded-full blur-xl opacity-20 animate-pulse"></div>
+                                <CheckCircle2 size={36} strokeWidth={2.5} className="relative z-10" />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">{popupMessage.title || 'Success!'}</h3>
+                            <p className="text-sm text-slate-500 font-medium px-4">{popupMessage.subtitle || 'Your attendance has been marked.'}</p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showSiteDetailsModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0"
+                    >
+                        <motion.div
+                            initial={{ y: '100%', opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: '100%', opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="bg-white w-full sm:max-w-md rounded-[32px] sm:rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col gap-6"
+                        >
+                            <div>
+                                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Site Details</h3>
+                                <p className="text-sm font-medium text-slate-500 mt-1">Please provide details for this check-in.</p>
+                            </div>
+                            
+                            <div className="space-y-5">
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Expected Duration</label>
+                                    <select
+                                        value={siteDetails.duration}
+                                        onChange={(e) => setSiteDetails({ ...siteDetails, duration: e.target.value })}
+                                        className="w-full bg-slate-50 p-4 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 focus:ring-4 ring-brand-primary/20 outline-none transition-all appearance-none"
+                                    >
+                                        <option value="1 Hour">1 Hour</option>
+                                        <option value="2 Hours">2 Hours</option>
+                                        <option value="4 Hours">4 Hours</option>
+                                        <option value="8 Hours">Full Day (8 Hours)</option>
+                                        <option value="Multiple Days">Multiple Days</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Site Issues / Status (Optional)</label>
+                                    <textarea
+                                        value={siteDetails.issues}
+                                        onChange={(e) => setSiteDetails({ ...siteDetails, issues: e.target.value })}
+                                        rows={3}
+                                        placeholder="Everything normal..."
+                                        className="w-full bg-slate-50 p-4 rounded-2xl border border-slate-200 text-sm font-medium text-slate-700 focus:ring-4 ring-brand-primary/20 outline-none transition-all resize-none"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-3 mt-2">
+                                <button
+                                    onClick={() => setShowSiteDetailsModal(false)}
+                                    className="flex-1 py-4 rounded-2xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={submitSiteDetails}
+                                    className="flex-[2] py-4 rounded-2xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <CheckCircle2 size={18} /> Confirm Check-In
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Ambient Multichrome MD3 Accents */}
             <div className="fixed top-0 right-0 w-[800px] h-[800px] bg-brand-primary-container/10 rounded-full blur-[160px] -z-10 pointer-events-none animate-pulse" />

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, AlertCircle, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
 import api from './api';
+import { io } from 'socket.io-client';
 
 const LeaveHub = () => {
     const navigate = useNavigate();
@@ -11,6 +12,24 @@ const LeaveHub = () => {
 
     useEffect(() => {
         fetchLeaves();
+
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
+        const socketUrl = apiUrl.replace('/api', '');
+        const socket = io(socketUrl);
+
+        socket.on('leave_status_updated', (updatedLeave) => {
+            setLeaves(prev => {
+                const exists = prev.find(l => l._id === updatedLeave._id);
+                if (exists) {
+                    return prev.map(l => l._id === updatedLeave._id ? updatedLeave : l);
+                }
+                return prev;
+            });
+        });
+
+        return () => {
+            socket.disconnect();
+        };
     }, []);
 
     const fetchLeaves = async () => {
@@ -76,8 +95,8 @@ const LeaveHub = () => {
                 used: sl_used,
                 total: 12,
                 val: `${sl_used} used out of 12`,
-                color: 'text-md-secondary',
-                bg: 'bg-md-secondary'
+                color: 'text-blue-600',
+                bg: 'bg-blue-500'
             },
             {
                 label: 'In Review Leaves',
@@ -117,13 +136,13 @@ const LeaveHub = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, i) => (
-                    <div key={i} className="m3-card-filled p-6 bg-md-surface-container border border-md-outline/5 transition-all hover:bg-md-surface-container-high group">
+                    <div key={i} className="m3-card-filled p-6 bg-white border border-md-outline/5 transition-all hover:bg-slate-100 group">
                         <p className="text-[10px] text-md-on-surface-variant font-bold uppercase tracking-widest mb-4 opacity-60">{stat.label}</p>
                         <h4 className={`text-xl font-bold mb-4 ${stat.color}`}>{stat.val}</h4>
 
                         {stat.total && (
                             <div className="space-y-2">
-                                <div className="h-1.5 w-full bg-md-surface-container-highest rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${Math.min((stat.used / stat.total) * 100, 100)}%` }}
@@ -140,7 +159,7 @@ const LeaveHub = () => {
                 ))}
             </div>
 
-            <div className="m3-card-elevated bg-md-surface-container-low border border-md-outline/10 overflow-hidden">
+            <div className="m3-card-elevated bg-slate-50 border border-md-outline/10 overflow-hidden">
                 <div className="p-8 md:p-10">
                     <div className="flex items-center gap-3 mb-8">
                         <div className="w-2 h-8 bg-brand-primary rounded-full" />
@@ -157,7 +176,7 @@ const LeaveHub = () => {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: i * 0.05 }}
-                                    className="p-6 md:p-8 bg-md-surface-container-lowest/50 rounded-[24px] border border-md-outline/5 group hover:bg-md-surface-container transition-all"
+                                    className="p-6 md:p-8 bg-white/50 rounded-[24px] border border-md-outline/5 group hover:bg-white transition-all"
                                 >
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
                                         <div className="flex items-center gap-5">
@@ -192,7 +211,7 @@ const LeaveHub = () => {
                                 </motion.div>
                             ))
                         ) : (
-                            <div className="py-24 text-center border-2 border-dashed border-md-outline/10 rounded-[32px] bg-md-surface-container-lowest/30">
+                            <div className="py-24 text-center border-2 border-dashed border-md-outline/10 rounded-[32px] bg-white/30">
                                 <AlertCircle size={48} className="mx-auto text-md-on-surface-variant mb-4 opacity-10" />
                                 <p className="text-md-on-surface-variant font-bold uppercase tracking-widest text-xs">Clear log. No requests detected.</p>
                             </div>

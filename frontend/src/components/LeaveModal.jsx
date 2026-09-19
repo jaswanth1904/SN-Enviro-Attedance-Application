@@ -49,7 +49,7 @@ const LeaveModal = ({ isOpen, onClose, onApplySuccess }) => {
             <motion.div
                 initial={{ scale: 0.95, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                className="relative w-full max-w-lg m3-card-elevated bg-md-surface-container-high p-1 shadow-2xl overflow-hidden rounded-[32px]"
+                className="relative w-full max-w-lg m3-card-elevated bg-slate-100 p-1 shadow-2xl overflow-hidden rounded-[32px]"
             >
                 <div className="p-8 md:p-10">
                     <AnimatePresence mode="wait">
@@ -75,7 +75,7 @@ const LeaveModal = ({ isOpen, onClose, onApplySuccess }) => {
                                     </div>
                                     <button
                                         onClick={onClose}
-                                        className="w-10 h-10 flex items-center justify-center text-md-on-surface-variant hover:text-md-on-surface bg-md-surface-container rounded-full transition-colors"
+                                        className="w-10 h-10 flex items-center justify-center text-md-on-surface-variant hover:text-md-on-surface bg-white rounded-full transition-colors"
                                     >
                                         <X size={24} />
                                     </button>
@@ -90,7 +90,7 @@ const LeaveModal = ({ isOpen, onClose, onApplySuccess }) => {
                                                     key={type}
                                                     type="button"
                                                     onClick={() => setFormData({ ...formData, leaveType: type })}
-                                                    className={`py-3.5 px-4 rounded-2xl text-[11px] font-bold transition-all border-2 uppercase tracking-widest ${formData.leaveType === type ? 'bg-brand-primary text-md-on-primary border-brand-primary shadow-md' : 'bg-md-surface-container-low border-md-outline/10 text-md-on-surface-variant hover:border-brand-primary/30'}`}
+                                                    className={`py-3.5 px-4 rounded-2xl text-[11px] font-bold transition-all border-2 uppercase tracking-widest ${formData.leaveType === type ? 'bg-brand-primary text-md-on-primary border-brand-primary shadow-md' : 'bg-slate-50 border-md-outline/10 text-md-on-surface-variant hover:border-brand-primary/30'}`}
                                                 >
                                                     {type}
                                                 </button>
@@ -109,7 +109,7 @@ const LeaveModal = ({ isOpen, onClose, onApplySuccess }) => {
                                                     key={scope.id}
                                                     type="button"
                                                     onClick={() => setLeaveScope(scope.id)}
-                                                    className={`px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${leaveScope === scope.id ? 'bg-md-secondary-container text-md-on-secondary-container border-md-secondary/30 shadow-sm' : 'bg-transparent border-md-outline/10 text-md-on-surface-variant'}`}
+                                                    className={`px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${leaveScope === scope.id ? 'bg-blue-100 text-blue-700 border-blue-300/30 shadow-sm' : 'bg-transparent border-md-outline/10 text-md-on-surface-variant'}`}
                                                 >
                                                     {scope.label}
                                                 </button>
@@ -125,7 +125,7 @@ const LeaveModal = ({ isOpen, onClose, onApplySuccess }) => {
                                                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                                     <input
                                                         type="date"
-                                                        className="w-full bg-md-surface-container-highest/30 border-2 border-md-outline/10 rounded-2xl pl-12 pr-4 py-4 text-md-on-surface font-bold text-[11px] uppercase tracking-widest focus:outline-none focus:border-brand-primary transition-all"
+                                                        className="w-full bg-slate-100 border-2 border-md-outline/10 rounded-2xl pl-12 pr-4 py-4 text-md-on-surface font-bold text-[11px] uppercase tracking-widest focus:outline-none focus:border-brand-primary transition-all"
                                                         required
                                                         value={formData.startDate}
                                                         onChange={(e) => {
@@ -149,7 +149,7 @@ const LeaveModal = ({ isOpen, onClose, onApplySuccess }) => {
                                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                                         <input
                                                             type="date"
-                                                            className="w-full bg-md-surface-container-highest/30 border-2 border-md-outline/10 rounded-2xl pl-12 pr-4 py-4 text-md-on-surface font-bold text-[11px] uppercase tracking-widest focus:outline-none focus:border-brand-primary transition-all"
+                                                            className="w-full bg-slate-100 border-2 border-md-outline/10 rounded-2xl pl-12 pr-4 py-4 text-md-on-surface font-bold text-[11px] uppercase tracking-widest focus:outline-none focus:border-brand-primary transition-all"
                                                             required
                                                             value={formData.endDate}
                                                             onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
@@ -165,7 +165,7 @@ const LeaveModal = ({ isOpen, onClose, onApplySuccess }) => {
                                         <div className="relative group">
                                             <MessageSquare className="absolute left-4 top-5 text-brand-primary" size={18} />
                                             <textarea
-                                                className="w-full bg-md-surface-container-highest/30 border-2 border-md-outline/10 rounded-2xl pl-12 pr-6 py-5 text-md-on-surface font-medium text-sm focus:outline-none focus:border-brand-primary transition-all min-h-[140px] placeholder:text-md-on-surface-variant/30"
+                                                className="w-full bg-slate-100 border-2 border-md-outline/10 rounded-2xl pl-12 pr-6 py-5 text-md-on-surface font-medium text-sm focus:outline-none focus:border-brand-primary transition-all min-h-[140px] placeholder:text-md-on-surface-variant/30"
                                                 placeholder="Describe the operational reasoning for requested pause..."
                                                 required
                                                 value={formData.reason}

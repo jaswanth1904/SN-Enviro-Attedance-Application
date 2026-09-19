@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 // @access  Public
 exports.register = async (req, res, next) => {
     try {
-        const { name, email, phoneNumber, password, role } = req.body;
+        const { name, email, phoneNumber, password, role, empId } = req.body;
 
         // Create user
         const user = await User.create({
@@ -14,6 +14,7 @@ exports.register = async (req, res, next) => {
             email,
             phoneNumber,
             password,
+            empId,
             role: role || 'Staff'
         });
 
@@ -92,7 +93,7 @@ exports.getMe = async (req, res, next) => {
 exports.updateProfile = async (req, res, next) => {
     try {
         const update = { $set: {}, $unset: {} };
-        const allowedFields = ['name', 'email', 'phoneNumber', 'alternativeContact', 'bloodGroup', 'role', 'joiningDate', 'employmentType', 'gradeLevel', 'socialLinks', 'homeAddress', 'coreCompetencies', 'currentProjects'];
+        const allowedFields = ['name', 'empId', 'email', 'phoneNumber', 'alternativeContact', 'bloodGroup', 'role', 'joiningDate', 'employmentType', 'gradeLevel', 'socialLinks', 'homeAddress', 'coreCompetencies', 'currentProjects'];
 
         allowedFields.forEach(field => {
             if (req.body[field] !== undefined) {
@@ -112,6 +113,11 @@ exports.updateProfile = async (req, res, next) => {
             new: true,
             runValidators: true
         });
+
+        // Real-time broadcast for MD Dashboard
+        if (req.app.locals.io) {
+            req.app.locals.io.emit('profile_updated', user);
+        }
 
         res.status(200).json({
             success: true,
@@ -142,8 +148,8 @@ exports.updateProfile = async (req, res, next) => {
 // Get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
     // Create token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'sn_enviro_super_secret_fallback_key', {
+        expiresIn: process.env.JWT_EXPIRE || '30d'
     });
 
     res.status(statusCode).json({
@@ -151,6 +157,7 @@ const sendTokenResponse = (user, statusCode, res) => {
         token,
         user: {
             id: user._id,
+            empId: user.empId,
             name: user.name,
             email: user.email,
             role: user.role,

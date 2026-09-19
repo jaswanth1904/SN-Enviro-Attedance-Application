@@ -1,58 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Google Material Design 3 (M3) "Spectral Aurora" Multichrome System */
-
-  /* Primary Axis: Deep Indigo (Trust & Precision) */
-  --color-md-primary: #5c6bc0;
-  --color-md-on-primary: #ffffff;
-  --color-md-primary-container: #e8eaf6;
-  --color-md-on-primary-container: #1a237e;
-
-  /* Secondary Axis: Electric Teal (Flow & Ecology) */
-  --color-md-secondary: #26a69a;
-  --color-md-on-secondary: #ffffff;
-  --color-md-secondary-container: #e0f2f1;
-  --color-md-on-secondary-container: #004d40;
-
-  /* Tertiary Axis: Sunset Rose (Movement & Vitality) */
-  --color-md-tertiary: #ec407a;
-  --color-md-on-tertiary: #ffffff;
-  --color-md-tertiary-container: #fce4ec;
-  --color-md-on-tertiary-container: #880e4f;
-
-  /* Quaternary Accent: Solar Gold (Premium Value) */
-  --color-md-quaternary: #ffb300;
-  --color-md-on-quaternary: #000000;
-
-  --color-md-error: #ef5350;
-  --color-md-on-error: #ffffff;
-  --color-md-error-container: #ffebee;
-  --color-md-on-error-container: #c62828;
-
-  --color-md-surface: #f9fbfb;
-  /* Ultra-Clean Pearl */
-  --color-md-on-surface: #101214;
-  --color-md-surface-variant: #f0f3f4;
-  --color-md-on-surface-variant: #444c4e;
-  --color-md-outline: #747c7e;
-  --color-md-outline-variant: #c4c8ca;
-
-  --color-md-surface-container-lowest: #ffffff;
-  --color-md-surface-container-low: #f4f6f7;
-  --color-md-surface-container: #edf0f1;
-  --color-md-surface-container-high: #e6e9ea;
-  --color-md-surface-container-highest: #dfe2e3;
-
-  --font-sans: "Outfit", "Inter", "Google Sans", sans-serif;
-  --font-mono: "Fira Code", monospace;
-
-  /* Multi-Tone Brand Mapping */
-  --color-brand-primary: #5c6bc0;
-  --color-brand-secondary: #26a69a;
-  --color-brand-tertiary: #ec407a;
-  --color-brand-accent: #ffb300;
+  /* Clean, Simple, Bright Mobile-First Theme */
+  --color-brand-primary: #2563EB; /* Clean Blue */
+  --color-brand-secondary: #0ea5e9; /* Light Blue */
+  --color-brand-tertiary: #f43f5e; /* Rose */
+  --color-brand-accent: #10b981; /* Emerald */
   --color-brand-on-primary: #ffffff;
+
+  --color-md-surface: #ffffff;
+  --color-md-on-surface: #0f172a; /* Slate 900 */
+  --color-md-surface-variant: #f8fafc; /* Slate 50 */
+  --color-md-on-surface-variant: #475569; /* Slate 600 */
+  --color-md-outline: #cbd5e1; /* Slate 300 */
+  --color-md-outline-variant: #e2e8f0; /* Slate 200 */
+  
+  --color-md-error: #ef4444;
+  --color-md-error-container: #fee2e2;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-mono: "Fira Code", monospace;
 }
 
 :root {
@@ -69,11 +38,10 @@
 
 @layer base {
   body {
-    @apply bg-md-surface text-md-on-surface selection:bg-brand-primary/20 selection:text-brand-primary;
+    @apply bg-white text-md-on-surface;
     font-family: var(--font-sans);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    letter-spacing: 0.01em;
   }
 
   /* MD3 Typography Scales */
@@ -92,59 +60,42 @@
 
 @layer components {
 
-  /* Card System - MD3 Standards */
+  /* Clean Mobile-Friendly Card System */
   .m3-card-elevated {
-    @apply bg-md-surface-container-low rounded-[28px] border-none transition-all duration-300;
-    box-shadow: var(--md-elevation-1);
-  }
-
-  .m3-card-elevated:hover {
-    box-shadow: var(--md-elevation-2);
-    @apply bg-md-surface-container;
+    @apply bg-white border border-md-outline-variant rounded-xl shadow-sm;
   }
 
   .m3-card-filled {
-    @apply bg-md-surface-container-high rounded-[28px] border-none transition-colors duration-300;
-  }
-
-  .m3-card-filled:hover {
-    @apply bg-md-surface-container-highest;
+    @apply bg-slate-50 rounded-xl border border-md-outline-variant;
   }
 
   .m3-card-outlined {
-    @apply bg-md-surface border border-md-outline-variant rounded-[28px] transition-all duration-300 shadow-none;
+    @apply bg-transparent border border-md-outline-variant rounded-xl;
   }
 
-  .m3-card-outlined:hover {
-    @apply border-md-outline bg-md-surface-container-lowest;
-  }
-
-  /* Button System - MD3 Standards */
+  /* Large Mobile-Friendly Buttons */
   .m3-btn-filled {
-    @apply px-6 py-3 bg-brand-primary text-brand-on-primary font-bold rounded-full transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-30 disabled:pointer-events-none;
-    letter-spacing: 0.02em;
-    font-size: 0.875rem;
+    @apply px-6 py-4 bg-brand-primary text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+    font-size: 1rem;
   }
 
   .m3-btn-tonal {
-    @apply px-6 py-3 bg-md-secondary-container text-md-on-secondary-container font-bold rounded-full transition-all flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 disabled:opacity-30;
-    letter-spacing: 0.02em;
-    font-size: 0.875rem;
+    @apply px-6 py-4 bg-brand-primary/10 text-brand-primary font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-brand-primary/20 active:scale-95 disabled:opacity-50;
+    font-size: 1rem;
   }
 
   .m3-btn-outlined {
-    @apply px-6 py-3 border border-md-outline text-md-primary font-bold rounded-full transition-all flex items-center justify-center gap-2 hover:bg-md-primary/5 active:scale-95;
-    letter-spacing: 0.02em;
-    font-size: 0.875rem;
+    @apply px-6 py-4 border border-md-outline text-md-on-surface font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-95;
+    font-size: 1rem;
   }
 
   /* Form controls */
   .m3-input {
-    @apply w-full bg-md-surface-container-highest/30 border-b-2 border-md-outline-variant px-4 py-3 text-md-on-surface focus:border-brand-primary focus:bg-md-surface-container-highest/60 outline-none transition-all placeholder:text-md-on-surface-variant/50 rounded-t-xl;
+    @apply w-full bg-slate-100 border-b-2 border-slate-300 px-4 py-3 text-md-on-surface focus:border-brand-primary focus:bg-slate-200 outline-none transition-all placeholder:text-slate-500 rounded-t-xl;
   }
 
   .m3-search-bar {
-    @apply w-full bg-md-surface-container-highest border-none rounded-full pl-14 pr-6 py-4 text-md-on-surface font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all placeholder:text-md-on-surface-variant/50;
+    @apply w-full bg-slate-200 border-none rounded-full pl-14 pr-6 py-4 text-md-on-surface font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all placeholder:text-slate-500;
   }
 
   /* Navigation standards */
@@ -153,7 +104,7 @@
   }
 
   .m3-nav-indicator {
-    @apply absolute inset-x-2 inset-y-1 bg-md-secondary-container rounded-full -z-10 opacity-0 transition-all duration-300;
+    @apply absolute inset-x-2 inset-y-1 bg-blue-100 rounded-full -z-10 opacity-0 transition-all duration-300;
   }
 
   .active .m3-nav-indicator {
@@ -185,7 +136,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-md-surface-container;
+  @apply bg-slate-50;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -193,5 +144,11 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-md-outline;
+  @apply bg-slate-300;
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

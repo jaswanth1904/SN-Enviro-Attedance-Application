@@ -44,6 +44,14 @@ exports.recordAttendance = async (req, res, next) => {
         // Notify
         await sendOfficerNotification(req.user, req.site || { name: attendanceData.locationName }, attendance);
 
+        // Real-time Push to Dashboard
+        if (req.app.locals.io) {
+            const populatedAttendance = await Attendance.findById(attendance._id)
+                .populate('user', 'name email role')
+                .populate('site', 'name');
+            req.app.locals.io.emit('attendance_logged', populatedAttendance);
+        }
+
         res.status(201).json({
             success: true,
             data: attendance
@@ -94,6 +102,14 @@ exports.recordImmediateAttendance = async (req, res, next) => {
 
         // Proactive step: Trigger notification
         await sendOfficerNotification(req.user, req.site || { name: attendanceData.locationName }, attendance);
+
+        // Real-time Push to Dashboard
+        if (req.app.locals.io) {
+            const populatedAttendance = await Attendance.findById(attendance._id)
+                .populate('user', 'name email role')
+                .populate('site', 'name');
+            req.app.locals.io.emit('attendance_logged', populatedAttendance);
+        }
 
         res.status(201).json({
             success: true,
@@ -316,7 +332,12 @@ exports.checkOutAttendance = async (req, res, next) => {
                 new: true,
                 runValidators: true
             }
-        );
+        ).populate('user', 'name email role').populate('site', 'name');
+
+        // Real-time Push to Dashboard
+        if (req.app.locals.io) {
+            req.app.locals.io.emit('attendance_logged', attendance);
+        }
 
         res.status(200).json({
             success: true,

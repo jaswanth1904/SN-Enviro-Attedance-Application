@@ -23,9 +23,13 @@ const userSchema = new mongoose.Schema({
         minlength: 6,
         select: false
     },
+    empId: {
+        type: String,
+        trim: true,
+        default: ''
+    },
     role: {
         type: String,
-        enum: ['Staff', 'Senior', 'Accountant', 'Admin', 'Application Engineer', 'Office Employee'],
         default: 'Staff'
     },
     phoneNumber: {
@@ -72,6 +76,18 @@ const userSchema = new mongoose.Schema({
     currentProjects: {
         type: String,
         trim: true
+    },
+    department: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'Department'
+    },
+    site: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'Site'
+    },
+    pushSubscription: {
+        type: Object,
+        default: null
     },
     createdAt: {
         type: Date,

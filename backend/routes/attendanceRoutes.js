@@ -13,4 +13,7 @@ router.post('/immediate', protect, upload.single('selfie'), checkLocation, recor
 router.post('/import', protect, authorize('Admin', 'Senior'), csvUpload.single('file'), importAttendance);
 router.get('/reports', protect, authorize('Senior', 'Admin'), getReports);
 
+// Public 24/7 Endpoint for MD's TV Live Map (No Auth Required)
+router.get('/tv-reports', getReports);
+
 module.exports = router;

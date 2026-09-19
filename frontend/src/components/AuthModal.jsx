@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, Check, AlertCircle, Phone, Briefcase, Zap, ArrowRight, RefreshCw } from 'lucide-react';
+import { X, Mail, Lock, User, Check, AlertCircle, Phone, Briefcase, RefreshCw, ArrowRight } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
-
 import { useNavigate } from 'react-router-dom';
 
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
@@ -16,22 +15,22 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     const [showRoles, setShowRoles] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
+        empId: '',
         email: '',
         password: '',
         phoneNumber: '',
-        role: 'Staff'
+        role: ''
     });
 
-    const roles = ['Staff', 'Senior', 'Accountant', 'Admin', 'Application Engineer', 'Office Employee'];
+    const roles = ['Software', 'Application Engineer', 'Admin'];
 
     const handleSuccessfulAuth = () => {
         onClose();
-        // Conditional redirection based on authorization level
         const storedUser = JSON.parse(localStorage.getItem('user'));
         if (storedUser?.role === 'Admin' || storedUser?.role === 'Application Engineer') {
             navigate('/admin');
         } else {
-            navigate('/dashboard');
+            navigate('/mark-attendance');
         }
     };
 
@@ -47,7 +46,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
             } else {
                 setError(result.message);
             }
-        } else { // mode === 'signup'
+        } else { 
             const result = await register(formData);
             if (result.success) {
                 setSuccess(true);
@@ -55,7 +54,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                     particleCount: 150,
                     spread: 70,
                     origin: { y: 0.6 },
-                    colors: ['#5c6bc0', '#26a69a', '#ec407a', '#ffffff']
+                    colors: ['#2563EB', '#0ea5e9', '#10b981', '#ffffff']
                 });
                 setTimeout(() => {
                     setSuccess(false);
@@ -72,79 +71,80 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-md-surface/90 backdrop-blur-md"
+                className="absolute inset-0 bg-black/30 backdrop-blur-sm"
                 onClick={onClose}
             />
 
             <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                className="relative w-full max-w-md m3-card-elevated bg-md-surface-container-high p-1 shadow-2xl overflow-hidden max-h-[92vh] rounded-[28px]"
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 250 }}
+                className="relative w-full max-w-md bg-white sm:rounded-[24px] rounded-t-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-                <div className="p-5 md:p-6 overflow-y-auto custom-scrollbar relative">
+                {/* Handle bar for mobile */}
+                <div className="w-full flex justify-center pt-4 pb-2 sm:hidden">
+                    <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+                </div>
+
+                <div className="px-6 pb-6 pt-2 sm:p-8 overflow-y-auto custom-scrollbar relative flex-1">
+                    <button
+                        onClick={onClose}
+                        className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 hidden sm:flex items-center justify-center text-slate-400 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors z-20"
+                    >
+                        <X size={20} />
+                    </button>
+
                     <AnimatePresence mode="wait">
                         {success ? (
                             <motion.div
                                 key="success"
-                                initial={{ opacity: 0, scale: 0.8 }}
+                                initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                className="flex flex-col items-center justify-center py-12 text-center"
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="flex flex-col items-center justify-center py-16 text-center"
                             >
-                                <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 via-teal-500 to-rose-500 rounded-full flex items-center justify-center text-white mb-8 shadow-lg shadow-indigo-500/30">
-                                    <Check size={48} strokeWidth={3} />
+                                <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mb-6 shadow-sm border border-emerald-100">
+                                    <Check size={40} strokeWidth={2.5} />
                                 </div>
-                                <h2 className="text-3xl font-bold text-md-on-surface mb-3 tracking-tight">Identity Verified!</h2>
-                                <p className="text-md-on-surface-variant font-medium">Authentication sequence complete. Synchronizing...</p>
+                                <h2 className="text-3xl font-bold text-[#22223b] mb-2 tracking-tight" style={{ fontFamily: 'var(--font-serif, "Playfair Display", serif)' }}>Verified!</h2>
+                                <p className="text-slate-500 font-light text-sm">Authentication complete. Redirecting...</p>
                             </motion.div>
                         ) : (
-                            <motion.div key="form" className="animate-fade-in">
-                                <button
-                                    onClick={onClose}
-                                    className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center text-md-on-surface-variant hover:text-md-on-surface bg-md-surface-container rounded-full transition-colors"
-                                >
-                                    <X size={20} />
-                                </button>
-
-                                <div className="flex flex-col items-center mb-4 text-center">
-                                    <motion.div
-                                        animate={{ rotate: [0, 90, 0] }}
-                                        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                        className="w-12 h-12 bg-gradient-to-br from-brand-primary via-brand-secondary to-brand-tertiary text-white rounded-[16px] flex items-center justify-center shadow-2xl mb-3 shadow-brand-primary/20"
-                                    >
-                                        <Zap size={24} fill="currentColor" strokeWidth={0} />
-                                    </motion.div>
-                                    <h2 className="text-xl font-black text-md-on-surface tracking-tighter mb-1">
-                                        {mode === 'login' ? 'SN Enviro Employee Portal' : 'Account Enrollment'}
+                            <motion.div key="form" className="animate-fade-in pt-4 sm:pt-0">
+                                
+                                <div className="flex flex-col mb-8">
+                                    <h2 className="text-3xl sm:text-4xl font-medium text-[#22223b] tracking-tight mb-2" style={{ fontFamily: 'var(--font-serif, "Playfair Display", serif)' }}>
+                                        {mode === 'login' ? 'Welcome back.' : 'Create account.'}
                                     </h2>
-                                    <p className="text-[8px] text-brand-primary font-black uppercase tracking-[0.3em]">
-                                        {mode === 'login' ? 'Login Portal' : 'Identity Setup'}
+                                    <p className="text-slate-500 font-light text-sm">
+                                        Enter your credentials to access the SN Enviro portal.
                                     </p>
                                 </div>
 
-                                <div className="flex p-0.5 bg-md-surface-container rounded-xl mb-4 border border-md-outline/5 relative overflow-hidden group">
+                                <div className="flex p-1 bg-slate-50 rounded-full mb-8 border border-slate-100 relative overflow-hidden">
                                     <motion.div
                                         layoutId="auth-pill"
-                                        className={`absolute inset-y-0.5 w-[calc(50%-2px)] h-[calc(100%-4px)] rounded-lg shadow-lg z-0 transition-colors duration-500 ${mode === 'login' ? 'left-0.5 bg-brand-primary' : 'left-[calc(50%+1px)] bg-brand-secondary'}`}
+                                        className="absolute inset-y-1 w-[calc(50%-4px)] h-[calc(100%-8px)] rounded-full bg-white shadow-sm z-0"
+                                        style={{ left: mode === 'login' ? '4px' : 'calc(50%)' }}
                                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setMode('login')}
-                                        className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest transition-all relative z-10 ${mode === 'login' ? 'text-white' : 'text-md-on-surface-variant group-hover:text-md-on-surface'}`}
+                                        className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors relative z-10 ${mode === 'login' ? 'text-slate-900' : 'text-slate-400'}`}
                                     >
                                         Login
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setMode('signup')}
-                                        className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest transition-all relative z-10 ${mode === 'signup' ? 'text-white' : 'text-md-on-surface-variant group-hover:text-md-on-surface'}`}
+                                        className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors relative z-10 ${mode === 'signup' ? 'text-slate-900' : 'text-slate-400'}`}
                                     >
                                         Register
                                     </button>
@@ -154,10 +154,10 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                     <motion.div
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="mb-6 p-3 bg-md-error/10 border border-md-error/20 rounded-xl flex items-center gap-3 text-md-error text-[12px] font-bold"
+                                        className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-600 text-[13px]"
                                     >
-                                        <AlertCircle size={16} />
-                                        <span className="flex-1">{Array.isArray(error) ? error.join(', ') : error}</span>
+                                        <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                                        <span className="flex-1 leading-tight">{Array.isArray(error) ? error.join(', ') : error}</span>
                                     </motion.div>
                                 )}
 
@@ -165,11 +165,11 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                     {mode === 'signup' && (
                                         <>
                                             <div className="relative group">
-                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={16} />
+                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
                                                 <input
                                                     type="text"
-                                                    placeholder="Full Identity Name"
-                                                    className="w-full bg-md-surface-container border-2 border-md-outline/10 rounded-xl pl-12 pr-4 py-2.5 text-md-on-surface font-bold text-[12px] tracking-wide focus:outline-none focus:border-brand-primary transition-all"
+                                                    placeholder="Full Name"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                                     required
                                                     value={formData.name}
                                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -177,11 +177,11 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                             </div>
 
                                             <div className="relative group">
-                                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={16} />
+                                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
                                                 <input
                                                     type="tel"
-                                                    placeholder="Operational Frequency (Mobile)"
-                                                    className="w-full bg-md-surface-container border-2 border-md-outline/10 rounded-xl pl-12 pr-4 py-2.5 text-md-on-surface font-bold text-[12px] tracking-wide focus:outline-none focus:border-brand-primary transition-all"
+                                                    placeholder="Mobile Number"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                                     required={mode === 'signup'}
                                                     pattern="[0-9]{10}"
                                                     value={formData.phoneNumber}
@@ -190,60 +190,37 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                             </div>
 
                                             <div className="relative group">
-                                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary z-10" size={16} />
-                                                <div
-                                                    className={`w-full h-11 pl-12 pr-4 bg-md-surface-container border-2 border-md-outline/10 rounded-xl flex items-center justify-between cursor-pointer transition-all ${showRoles ? 'border-brand-primary bg-md-surface-container-high' : 'hover:border-brand-primary/30'}`}
-                                                    onClick={() => setShowRoles(!showRoles)}
-                                                    tabIndex={0}
-                                                >
-                                                    <span className={`text-[12px] font-bold tracking-wide ${formData.role ? 'text-md-on-surface' : 'text-md-on-surface-variant/40'}`}>
-                                                        {formData.role || 'Sector Assignment'}
-                                                    </span>
-                                                    <motion.div
-                                                        animate={{ rotate: showRoles ? 180 : 0 }}
-                                                        className="text-brand-primary"
-                                                    >
-                                                        <Check size={12} className="rotate-45" />
-                                                    </motion.div>
-                                                </div>
-
-                                                <AnimatePresence>
-                                                    {showRoles && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                            animate={{ opacity: 1, y: 5, scale: 1 }}
-                                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                            className="absolute top-full left-0 right-0 z-[110] bg-md-surface-container-high border border-md-outline/10 rounded-2xl shadow-2xl p-2 overflow-hidden backdrop-blur-2xl"
-                                                        >
-                                                            <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                                                                {roles.map((role) => (
-                                                                    <button
-                                                                        key={role}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setFormData({ ...formData, role });
-                                                                            setShowRoles(false);
-                                                                        }}
-                                                                        className={`w-full text-left px-4 py-3.5 rounded-xl text-[13px] font-bold tracking-wide transition-all flex items-center justify-between group ${formData.role === role ? 'bg-brand-primary/10 text-brand-primary' : 'text-md-on-surface-variant hover:bg-md-surface-container'}`}
-                                                                    >
-                                                                        {role}
-                                                                        {formData.role === role && <Check size={14} />}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
+                                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Role (e.g. Service Engineer)"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                                    required
+                                                    value={formData.role}
+                                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                                />
+                                            </div>
+                                            
+                                            <div className="relative group">
+                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Employee ID"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                                    required
+                                                    value={formData.empId}
+                                                    onChange={(e) => setFormData({ ...formData, empId: e.target.value })}
+                                                />
                                             </div>
                                         </>
                                     )}
 
                                     <div className="relative group">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={16} />
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
                                         <input
                                             type="email"
-                                            placeholder="Digital Identity (Email)"
-                                            className="w-full bg-md-surface-container border-2 border-md-outline/10 rounded-xl pl-12 pr-4 py-2.5 text-md-on-surface font-bold text-[12px] tracking-wide focus:outline-none focus:border-brand-primary transition-all"
+                                            placeholder="Email Address"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                             required
                                             value={formData.email}
                                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -251,62 +228,60 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                     </div>
 
                                     <div className="relative group">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={16} />
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
                                         <input
                                             type="password"
-                                            placeholder="Access Credential"
-                                            className="w-full bg-md-surface-container border-2 border-md-outline/10 rounded-xl pl-12 pr-4 py-2.5 text-md-on-surface font-bold text-[12px] tracking-wide focus:outline-none focus:border-brand-primary transition-all"
+                                            placeholder="Password"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                             required
                                             value={formData.password}
                                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                         />
                                     </div>
 
-                                    <motion.button
+                                    <button
                                         type="submit"
                                         disabled={loading}
-                                        whileTap={{ scale: 0.98 }}
-                                        className="m3-btn-filled w-full py-3.5 rounded-[16px] text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-xl shadow-brand-primary/10 h-auto mt-2"
+                                        className="w-full py-4 bg-[#22223b] text-white rounded-full font-bold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-black active:scale-[0.98] transition-all shadow-md mt-8"
                                     >
                                         {loading ? (
-                                            <RefreshCw className="animate-spin" size={16} />
+                                            <RefreshCw className="animate-spin" size={18} />
                                         ) : (
                                             <>
-                                                {mode === 'login' ? 'Submit Authentication' : 'Create Account'} <ArrowRight size={16} />
+                                                {mode === 'login' ? 'Sign In' : 'Create Account'} <ArrowRight size={16} />
                                             </>
                                         )}
-                                    </motion.button>
-                                </form>
-
-                                <div className="mt-5 text-center pt-4 border-t border-md-outline/5">
-                                    <p className="text-md-on-surface-variant text-[9px] font-bold uppercase tracking-widest leading-relaxed">
-                                        {mode === 'login' ? "New Operative?" : "Already Registered?"}
+                                    </button>
+                                    
+                                    {/* Testing Bypasses section */}
+                                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
+                                        <div className="flex justify-center mb-4">
+                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Quick Access (Testing)</span>
+                                        </div>
                                         <button
+                                            type="button"
                                             onClick={() => {
-                                                setMode(mode === 'login' ? 'signup' : 'login');
-                                                setError('');
+                                                localStorage.setItem('token', 'dummy-token-admin');
+                                                localStorage.setItem('user', JSON.stringify({ name: 'Test Admin', role: 'Admin', email: 'admin@test.com' }));
+                                                window.location.href = '/admin';
                                             }}
-                                            className="ml-2 text-brand-primary font-black hover:opacity-80 transition-opacity"
+                                            className="w-full py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium text-xs flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-[0.98] transition-all"
                                         >
-                                            {mode === 'login' ? 'Create Account' : 'Back to Login'}
+                                            <User size={16} strokeWidth={1.5} /> Bypass as Admin
                                         </button>
-                                    </p>
-                                </div>
-
-                                {/* High-Alert Team Directive */}
-                                <div className="mt-5 p-5 bg-md-error/10 rounded-[24px] border-2 border-md-error/30 shadow-lg shadow-md-error/5">
-                                    <div className="flex flex-col items-center text-center gap-3">
-                                        <div className="w-12 h-12 bg-md-error/20 rounded-full flex items-center justify-center text-md-error mb-1">
-                                            <AlertCircle size={28} strokeWidth={3} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-[12px] text-md-error font-black uppercase tracking-[0.25em]">CRITICAL TEAM DIRECTIVE</p>
-                                            <p className="text-[11px] text-md-on-surface font-black leading-relaxed tracking-wide">
-                                                MUST READ: Finalize your work shift ONLY ONCE. Your first login and final logout are the only data points saved per day. Multiple login/logout cycles are strictly prohibited for data integrity.
-                                            </p>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                localStorage.setItem('token', 'dummy-token-engineer');
+                                                localStorage.setItem('user', JSON.stringify({ name: 'Test Engineer', role: 'Service Engineer', email: 'eng@test.com' }));
+                                                window.location.href = '/dashboard';
+                                            }}
+                                            className="w-full py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium text-xs flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-[0.98] transition-all"
+                                        >
+                                            <Briefcase size={16} strokeWidth={1.5} /> Bypass as Engineer
+                                        </button>
                                     </div>
-                                </div>
+                                </form>
                             </motion.div>
                         )}
                     </AnimatePresence>

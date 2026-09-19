@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
         if (token && storedUser) {
             setUser(JSON.parse(storedUser));
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            
         }
 
         // Global interceptor for session robustness (Auto-logout on 401)
@@ -35,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
             const response = await axios.post(`${API_URL}/auth/login`, { email, password });
             const { token, user } = response.data;
 
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }) => {
 
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             setUser(user);
+
             return { success: true };
         } catch (error) {
             return {
@@ -55,11 +57,21 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
             const response = await axios.post(`${API_URL}/auth/register`, userData);
+            
+            // Auto-login after registration
+            const { token, user } = response.data;
+            if (token && user) {
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                setUser(user);
+            }
+            
             return { success: true, data: response.data };
         } catch (error) {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
             return {
                 success: false,
                 message: error.response?.data?.error || error.response?.data?.message || (error.code === 'ERR_NETWORK' ? `Connection refused at ${API_URL}` : 'Registration failed')
@@ -76,7 +88,7 @@ export const AuthProvider = ({ children }) => {
 
     const updateProfile = async (profileData) => {
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
             const response = await axios.put(`${API_URL}/auth/updatedetails`, profileData);
 
             if (response.data.success) {

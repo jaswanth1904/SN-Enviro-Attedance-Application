@@ -39,4 +39,7 @@ const leaveSchema = new mongoose.Schema({
     rejectionReason: String
 });
 
+// TTL Index for auto-deleting records older than 90 days (7776000 seconds)
+leaveSchema.index({ appliedAt: 1 }, { expireAfterSeconds: 7776000 });
+
 module.exports = mongoose.model('Leave', leaveSchema);

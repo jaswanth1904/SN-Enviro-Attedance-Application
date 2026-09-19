@@ -70,7 +70,7 @@ const LeaveApplication = () => {
                     <p className="text-md-on-surface-variant font-medium text-lg leading-relaxed">
                         Your leave request has been transmitted to HQ Command. Redirecting to control center...
                     </p>
-                    <div className="mt-12 h-1 w-full bg-md-surface-container rounded-full overflow-hidden">
+                    <div className="mt-12 h-1 w-full bg-white rounded-full overflow-hidden">
                         <motion.div
                             initial={{ x: '-100%' }}
                             animate={{ x: '0%' }}
@@ -98,7 +98,7 @@ const LeaveApplication = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => navigate('/dashboard')}
-                        className="w-12 h-12 m3-card-elevated flex items-center justify-center text-md-on-surface-variant hover:text-brand-primary transition-colors bg-md-surface-container-low border-0"
+                        className="w-12 h-12 m3-card-elevated flex items-center justify-center text-md-on-surface-variant hover:text-brand-primary transition-colors bg-slate-50 border-0"
                     >
                         <ArrowLeft size={20} />
                     </motion.button>
@@ -122,7 +122,7 @@ const LeaveApplication = () => {
                         className="space-y-8"
                     >
                         {/* Classification Selector */}
-                        <div className="m3-card-elevated bg-md-surface-container-low p-8 border border-md-outline/5 rounded-[32px]">
+                        <div className="m3-card-elevated bg-slate-50 p-8 border border-md-outline/5 rounded-[32px]">
                             <label className="text-[10px] text-md-on-surface-variant font-black uppercase tracking-[0.2em] mb-8 block">Request Classification</label>
                             <div className="grid sm:grid-cols-2 gap-4">
                                 {leaveTypes.map((type) => (
@@ -130,9 +130,9 @@ const LeaveApplication = () => {
                                         key={type.id}
                                         type="button"
                                         onClick={() => setFormData({ ...formData, leaveType: type.id })}
-                                        className={`group relative p-4 rounded-[24px] text-left transition-all border-2 ${formData.leaveType === type.id ? 'bg-brand-primary border-brand-primary shadow-lg shadow-brand-primary/10 scale-[1.01]' : 'bg-md-surface-container-highest/20 border-md-outline/10 hover:border-brand-primary/40'}`}
+                                        className={`group relative p-4 rounded-[24px] text-left transition-all border-2 ${formData.leaveType === type.id ? 'bg-brand-primary border-brand-primary shadow-lg shadow-brand-primary/10 scale-[1.01]' : 'bg-slate-50 border-md-outline/10 hover:border-brand-primary/40'}`}
                                     >
-                                        <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center transition-colors ${formData.leaveType === type.id ? 'bg-white/20 text-white' : 'bg-md-surface-container text-brand-primary group-hover:bg-brand-primary/10'}`}>
+                                        <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center transition-colors ${formData.leaveType === type.id ? 'bg-white/20 text-white' : 'bg-white text-brand-primary group-hover:bg-brand-primary/10'}`}>
                                             <type.icon size={20} />
                                         </div>
                                         <h4 className={`font-bold text-base mb-0.5 transition-colors ${formData.leaveType === type.id ? 'text-white' : 'text-md-on-surface'}`}>{type.label}</h4>
@@ -147,7 +147,7 @@ const LeaveApplication = () => {
                         </div>
 
                         {/* Leave Scope & Timeline */}
-                        <div className="m3-card-elevated bg-md-surface-container-low p-8 border border-md-outline/5 rounded-[32px]">
+                        <div className="m3-card-elevated bg-slate-50 p-8 border border-md-outline/5 rounded-[32px]">
                             <label className="text-[10px] text-md-on-surface-variant font-black uppercase tracking-[0.2em] mb-8 block">Leave Scope</label>
 
                             <div className="flex flex-wrap gap-3 mb-10">
@@ -159,7 +159,7 @@ const LeaveApplication = () => {
                                         key={scope.id}
                                         type="button"
                                         onClick={() => setLeaveScope(scope.id)}
-                                        className={`px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border-2 ${leaveScope === scope.id ? 'bg-md-secondary-container text-md-on-secondary-container border-md-secondary shadow-sm' : 'bg-transparent border-md-outline/10 text-md-on-surface-variant'}`}
+                                        className={`px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border-2 ${leaveScope === scope.id ? 'bg-blue-100 text-blue-700 border-blue-400 shadow-sm' : 'bg-transparent border-md-outline/10 text-md-on-surface-variant'}`}
                                     >
                                         {scope.label}
                                     </button>
@@ -173,7 +173,7 @@ const LeaveApplication = () => {
                                         <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                         <input
                                             type="date"
-                                            className="w-full bg-md-surface-container-highest/30 border-2 border-md-outline/10 rounded-xl pl-12 pr-6 py-4 text-md-on-surface font-bold text-sm focus:outline-none focus:border-brand-primary transition-all"
+                                            className="w-full bg-slate-100 border-2 border-md-outline/10 rounded-xl pl-12 pr-6 py-4 text-md-on-surface font-bold text-sm focus:outline-none focus:border-brand-primary transition-all"
                                             required
                                             value={formData.startDate}
                                             onChange={(e) => {
@@ -199,7 +199,7 @@ const LeaveApplication = () => {
                                             <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                             <input
                                                 type="date"
-                                                className="w-full bg-md-surface-container-highest/30 border-2 border-md-outline/10 rounded-xl pl-12 pr-6 py-4 text-md-on-surface font-bold text-sm focus:outline-none focus:border-brand-primary transition-all"
+                                                className="w-full bg-slate-100 border-2 border-md-outline/10 rounded-xl pl-12 pr-6 py-4 text-md-on-surface font-bold text-sm focus:outline-none focus:border-brand-primary transition-all"
                                                 required
                                                 value={formData.endDate}
                                                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
@@ -211,12 +211,12 @@ const LeaveApplication = () => {
                         </div>
 
                         {/* Operational Reasoning */}
-                        <div className="m3-card-elevated bg-md-surface-container-low p-8 border border-md-outline/5 rounded-[32px]">
+                        <div className="m3-card-elevated bg-slate-50 p-8 border border-md-outline/5 rounded-[32px]">
                             <label className="text-[10px] text-md-on-surface-variant font-black uppercase tracking-[0.2em] mb-8 block">Cause for the Leave</label>
                             <div className="relative group">
                                 <MessageSquare className="absolute left-5 top-6 text-brand-primary" size={18} />
                                 <textarea
-                                    className="w-full bg-md-surface-container-highest/30 border-2 border-md-outline/10 rounded-2xl pl-12 pr-8 py-5 text-md-on-surface font-medium text-sm focus:outline-none focus:border-brand-primary transition-all min-h-[160px] placeholder:text-md-on-surface-variant/20"
+                                    className="w-full bg-slate-100 border-2 border-md-outline/10 rounded-2xl pl-12 pr-8 py-5 text-md-on-surface font-medium text-sm focus:outline-none focus:border-brand-primary transition-all min-h-[160px] placeholder:text-md-on-surface-variant/20"
                                     placeholder="Provide detailed context for this requested leave..."
                                     required
                                     value={formData.reason}
