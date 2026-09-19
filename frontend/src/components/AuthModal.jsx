@@ -253,34 +253,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                         )}
                                     </button>
                                     
-                                    {/* Testing Bypasses section */}
-                                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
-                                        <div className="flex justify-center mb-4">
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Quick Access (Testing)</span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                localStorage.setItem('token', 'dummy-token-admin');
-                                                localStorage.setItem('user', JSON.stringify({ name: 'Test Admin', role: 'Admin', email: 'admin@test.com' }));
-                                                window.location.href = '/admin';
-                                            }}
-                                            className="w-full py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium text-xs flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-[0.98] transition-all"
-                                        >
-                                            <User size={16} strokeWidth={1.5} /> Bypass as Admin
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                localStorage.setItem('token', 'dummy-token-engineer');
-                                                localStorage.setItem('user', JSON.stringify({ name: 'Test Engineer', role: 'Service Engineer', email: 'eng@test.com' }));
-                                                window.location.href = '/dashboard';
-                                            }}
-                                            className="w-full py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium text-xs flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-[0.98] transition-all"
-                                        >
-                                            <Briefcase size={16} strokeWidth={1.5} /> Bypass as Engineer
-                                        </button>
-                                    </div>
+                                    {/* Removed Testing Bypasses for Production */}
                                 </form>
                             </motion.div>
                         )}
