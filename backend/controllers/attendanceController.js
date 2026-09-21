@@ -284,6 +284,32 @@ exports.getReports = async (req, res, next) => {
         next(error);
     }
 };
+// @desc    Get all active live attendance records (MD Dashboard TV Map)
+// @route   GET /api/attendance/tv-reports
+// @access  Public
+exports.getLiveReports = async (req, res, next) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const reports = await Attendance.find({
+            timestamp: { $gte: today },
+            checkOut: { $exists: false }
+        })
+            .populate('user', 'name email role')
+            .populate('site', 'name')
+            .sort('-timestamp');
+
+        res.status(200).json({
+            success: true,
+            count: reports.length,
+            data: reports
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Check out attendance
 // @route   PUT /api/attendance/checkout/:id
 // @access  Private

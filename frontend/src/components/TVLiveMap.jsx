@@ -55,14 +55,8 @@ const TVLiveMap = () => {
                 // Fetch today's active attendances from the PUBLIC 24/7 endpoint
                 const res = await api.get('/attendance/tv-reports');
                 
-                // Filter for only today's records that haven't checked out yet
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                const activeAttendances = res.data.data.filter(a => {
-                    const d = new Date(a.timestamp);
-                    return d >= today && !a.checkOut;
-                });
+                // Backend now perfectly returns exactly today's active attendances
+                const activeAttendances = res.data.data;
 
                 const activeMarkers = activeAttendances.map(a => ({
                     id: a._id,
