@@ -57,7 +57,7 @@ cron.schedule('45 10 * * *', async () => {
                     });
 
                     // Real Email Transport
-                    const explanationUrl = `http://localhost:5173/explain-absence/${token}`;
+                    const explanationUrl = `https://sn-enviro-attedance-application.vercel.app/explain-absence/${token}`;
                     if (user.email) {
                         try {
                             const sendEmail = require('../utils/sendEmail');
