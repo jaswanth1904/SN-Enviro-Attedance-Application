@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sn-enviro';
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sn-enviro';
     const conn = await mongoose.connect(uri, {
       tlsAllowInvalidCertificates: true,
       maxPoolSize: 300, // Handle up to 300 concurrent database connections for peak load (500+ users)
