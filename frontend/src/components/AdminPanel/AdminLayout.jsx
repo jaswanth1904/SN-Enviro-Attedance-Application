@@ -117,6 +117,13 @@ const AdminLayout = () => {
                 </div>
 
                 <div className="p-4 border-t border-slate-100 flex flex-col gap-2">
+                    <button
+                        onClick={() => window.open('/tv-map', '_blank')}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 w-full transition-all duration-200 mb-2 ${collapsed ? 'justify-center' : ''}`}
+                    >
+                        <Map size={20} className="shrink-0" />
+                        {!collapsed && <span className="text-sm">MD Live TV Map</span>}
+                    </button>
 
                     <button
                         onClick={handleLogout}
@@ -176,6 +183,13 @@ const AdminLayout = () => {
                                     ))}
                                 </div>
                                 <div className="p-4 border-t border-slate-100 flex flex-col gap-2">
+                                    <button
+                                        onClick={() => { setMobileOpen(false); window.open('/tv-map', '_blank'); }}
+                                        className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 w-full transition-all duration-200 mb-2"
+                                    >
+                                        <Map size={20} className="shrink-0" />
+                                        <span className="text-sm">MD Live TV Map</span>
+                                    </button>
 
                                     <button
                                         onClick={() => { setMobileOpen(false); handleLogout(); }}

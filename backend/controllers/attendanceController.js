@@ -8,12 +8,31 @@ const { sendOfficerNotification } = require('../utils/notifier');
 exports.recordAttendance = async (req, res, next) => {
     try {
         const { siteId, latitude, longitude, selfieUrl, locationName, timestamp, onlyReverse } = req.body;
-        const { reverseGeocode } = require('../utils/geo');
+        const { reverseGeocode, verifyPlantGeofence } = require('../utils/geo');
+
+        // Run the strict 1000m Geofence check
+        const geofence = verifyPlantGeofence(latitude, longitude);
+
+        // Geofence enforcement REMOVED as requested for WFH/remote access
+        /*
+        if (!geofence.isAuthorized) {
+            return res.status(403).json({ 
+                success: false, 
+                error: `Attendance Blocked: You are ${Math.round(geofence.distanceMeters)} meters away from the nearest plant. You must be within 1000 meters (1.0 km) to punch in.` 
+            });
+        }
+        */
+
+        let actualLocationName;
+        if (geofence.isAuthorized) {
+            actualLocationName = geofence.plant.name;
+        } else {
+            actualLocationName = await reverseGeocode(latitude, longitude);
+        }
 
         // Handle simple address detection for UI feedback
         if (onlyReverse) {
-            const address = await reverseGeocode(latitude, longitude);
-            return res.status(200).json({ success: true, address });
+            return res.status(200).json({ success: true, address: actualLocationName });
         }
 
         const attendanceData = {
@@ -28,15 +47,14 @@ exports.recordAttendance = async (req, res, next) => {
         };
 
         // Site Engineer / Office Employee Specific Logic
-        const isSpclRole = ['Application Engineer', 'Office Employee'].includes(req.user.role);
+        const isSpclRole = ['Application Engineer', 'Office Employee', 'Software Developer', 'Embedded Engineer'].includes(req.user.role);
 
         if (req.isServiceLocation || isSpclRole) {
-            // Use provided location name or detect via Google
-            attendanceData.locationName = locationName || (await reverseGeocode(latitude, longitude));
+            attendanceData.locationName = actualLocationName;
         } else {
             attendanceData.site = siteId;
-            attendanceData.distanceFromSite = req.distance;
-            attendanceData.locationName = req.site.name;
+            attendanceData.distanceFromSite = Math.round(geofence.distanceMeters);
+            attendanceData.locationName = actualLocationName;
         }
 
         const attendance = await Attendance.create(attendanceData);
@@ -74,6 +92,28 @@ exports.recordImmediateAttendance = async (req, res, next) => {
         }
 
         const { siteId, latitude, longitude, locationName, timestamp } = req.body;
+        const { verifyPlantGeofence } = require('../utils/geo');
+
+        // Run the strict 1000m Geofence check
+        const geofence = verifyPlantGeofence(latitude, longitude);
+
+        // Geofence enforcement REMOVED as requested for WFH/remote access
+        /*
+        if (!geofence.isAuthorized) {
+            return res.status(403).json({ 
+                success: false, 
+                error: `Attendance Blocked: You are ${Math.round(geofence.distanceMeters)} meters away from the nearest plant. You must be within 1000 meters (1.0 km) to punch in.` 
+            });
+        }
+        */
+
+        let actualLocationName;
+        if (geofence.isAuthorized) {
+            actualLocationName = geofence.plant.name;
+        } else {
+            const { reverseGeocode } = require('../utils/geo');
+            actualLocationName = await reverseGeocode(latitude, longitude);
+        }
 
         // Construct the URL for the uploaded file
         // Note: In production, this should be the full URL. For local dev, we use the path.
@@ -91,11 +131,11 @@ exports.recordImmediateAttendance = async (req, res, next) => {
         };
 
         if (req.isServiceLocation) {
-            attendanceData.locationName = locationName || 'Service Location';
+            attendanceData.locationName = actualLocationName;
         } else {
             attendanceData.site = siteId;
-            attendanceData.distanceFromSite = req.distance;
-            attendanceData.locationName = req.site.name;
+            attendanceData.distanceFromSite = Math.round(geofence.distanceMeters);
+            attendanceData.locationName = actualLocationName;
         }
 
         const attendance = await Attendance.create(attendanceData);

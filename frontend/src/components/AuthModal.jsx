@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, Check, AlertCircle, Phone, Briefcase, RefreshCw, ArrowRight } from 'lucide-react';
+import { X, Mail, Lock, User, Check, AlertCircle, Phone, Briefcase, RefreshCw, ArrowRight, Eye, EyeOff, MapPin } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [showRoles, setShowRoles] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -27,10 +28,13 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     const handleSuccessfulAuth = () => {
         onClose();
         const storedUser = JSON.parse(localStorage.getItem('user'));
+        
+        // Use hard-redirects instead of SPA navigation to completely flush
+        // the React tree and force a fresh mount with the new session.
         if (storedUser?.role === 'Admin' || storedUser?.role === 'Application Engineer') {
-            navigate('/admin');
+            window.location.href = '/admin';
         } else {
-            navigate('/mark-attendance');
+            window.location.href = '/dashboard';
         }
     };
 
@@ -190,15 +194,22 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                             </div>
 
                                             <div className="relative group">
-                                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Role (e.g. Service Engineer)"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none" size={18} strokeWidth={1.5} />
+                                                <select
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-10 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
                                                     required
                                                     value={formData.role}
                                                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                                />
+                                                >
+                                                    <option value="" disabled>Select Designation / Role</option>
+                                                    <option value="Software Developer">Software Developer</option>
+                                                    <option value="Embedded Engineer">Embedded Engineer</option>
+                                                    <option value="Service Engineer">Service Engineer</option>
+                                                    <option value="Admin">Admin</option>
+                                                </select>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                                </div>
                                             </div>
                                             
                                             <div className="relative group">
@@ -230,14 +241,33 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                     <div className="relative group">
                                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
                                         <input
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             placeholder="Password"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-12 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                             required
                                             value={formData.password}
                                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                         />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+                                        </button>
                                     </div>
+
+                                    {mode === 'login' && (
+                                        <div className="flex justify-end mt-2">
+                                            <button 
+                                                type="button"
+                                                onClick={() => alert("Password reset link will be sent to your registered email.")}
+                                                className="text-[11px] font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                                            >
+                                                Forgot Password?
+                                            </button>
+                                        </div>
+                                    )}
 
                                     <button
                                         type="submit"
@@ -253,34 +283,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                         )}
                                     </button>
                                     
-                                    {/* Testing Bypasses section */}
-                                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
-                                        <div className="flex justify-center mb-4">
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Quick Access (Testing)</span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                localStorage.setItem('token', 'dummy-token-admin');
-                                                localStorage.setItem('user', JSON.stringify({ name: 'Test Admin', role: 'Admin', email: 'admin@test.com' }));
-                                                window.location.href = '/admin';
-                                            }}
-                                            className="w-full py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium text-xs flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-[0.98] transition-all"
-                                        >
-                                            <User size={16} strokeWidth={1.5} /> Bypass as Admin
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                localStorage.setItem('token', 'dummy-token-engineer');
-                                                localStorage.setItem('user', JSON.stringify({ name: 'Test Engineer', role: 'Service Engineer', email: 'eng@test.com' }));
-                                                window.location.href = '/dashboard';
-                                            }}
-                                            className="w-full py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium text-xs flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-[0.98] transition-all"
-                                        >
-                                            <Briefcase size={16} strokeWidth={1.5} /> Bypass as Engineer
-                                        </button>
-                                    </div>
+                                
                                 </form>
                             </motion.div>
                         )}

@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
             (error) => {
                 if (error.response?.status === 401) {
                     logout();
-                    window.location.href = '/';
+                    // window.location.href = '/'; // Disabling hard redirect to stop kicking users out during testing/dummy tokens
                 }
                 return Promise.reject(error);
             }
