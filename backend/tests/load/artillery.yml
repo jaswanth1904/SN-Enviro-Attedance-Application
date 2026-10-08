@@ -1,0 +1,40 @@
+config:
+  target: "http://localhost:5002" # Your local backend port from server.js
+  phases:
+    - duration: 60
+      arrivalRate: 14 # 14 new virtual users per second for 60 seconds = 840 total users
+      name: "9:00 AM Rush (800+ Users)"
+  
+  # Optional: If you want to simulate 300 different users, 
+  # create a 'users.csv' with 'email,password' and uncomment this:
+  # payload:
+  #   path: "users.csv"
+  #   fields:
+  #     - "email"
+  #     - "password"
+  #   order: sequence
+
+scenarios:
+  - name: "User logs in and punches attendance"
+    flow:
+      # Step 1: Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            # Replace with a valid test user's credentials in your DB
+            email: "admin@snenviro.in" 
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "token"
+      
+      # Step 2: Mark Attendance
+      - post:
+          url: "/api/attendance"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            # Simulated coordinates (e.g., Hyderabad)
+            latitude: 17.3850
+            longitude: 78.4867
+            timestamp: "{{ $timestamp }}"

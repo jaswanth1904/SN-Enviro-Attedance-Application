@@ -1,0 +1,49 @@
+name: Full CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+
+    # Backend Setup & Security Audit
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        npm ci || npm install --legacy-peer-deps
+    
+    - name: Run Backend Security Audit
+      run: |
+        cd backend
+        npm audit --audit-level=high || true # Will not break build yet until all issues are fixed
+        
+    # Frontend Setup & Security Audit
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm ci || npm install --legacy-peer-deps
+        
+    - name: Run Frontend Security Audit
+      run: |
+        cd frontend
+        npm audit --audit-level=high || true
+
+    # Contract Testing
+    - name: Run Frontend API Contract Tests (Pact)
+      run: |
+        cd frontend
+        npx vitest run tests/contract/attendance.pact.test.js

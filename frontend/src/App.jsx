@@ -117,6 +117,7 @@ const AppContent = () => {
         </AnimatePresence>
       </main>
 
+
       {!location.pathname.startsWith('/admin') && location.pathname !== '/live-map' && !location.pathname.startsWith('/tv-map') && <Footer />}
 
       <AnimatePresence>

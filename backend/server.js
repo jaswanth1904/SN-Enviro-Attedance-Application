@@ -1,3 +1,16 @@
+const Sentry = require('@sentry/node');
+const { nodeProfilingIntegration } = require('@sentry/profiling-node');
+
+// Initialize Sentry BEFORE any other require to catch all crashes
+Sentry.init({
+  dsn: process.env.SENTRY_DSN || "https://public@sentry.example.com/1", // Replace with your Sentry DSN
+  integrations: [
+    nodeProfilingIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  profilesSampleRate: 1.0,
+});
+
 const express = require('express');
 const dotenv = require('dotenv');
 const morgan = require('morgan');
@@ -114,6 +127,10 @@ app.get('/', (req, res) => {
         }
     });
 });
+
+
+// Sentry Error Handler must be BEFORE the Global Error Handler
+Sentry.setupExpressErrorHandler(app);
 
 // Global Error Handler
 app.use(errorHandler);
