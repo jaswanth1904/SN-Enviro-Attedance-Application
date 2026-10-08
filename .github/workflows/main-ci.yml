@@ -24,7 +24,7 @@ jobs:
     - name: Install Backend Dependencies
       run: |
         cd backend
-        npm ci || npm install --legacy-peer-deps
+        npm install --legacy-peer-deps
     
     - name: Run Backend Security Audit
       run: |
@@ -35,7 +35,7 @@ jobs:
     - name: Install Frontend Dependencies
       run: |
         cd frontend
-        npm ci || npm install --legacy-peer-deps
+        npm install --legacy-peer-deps
         
     - name: Run Frontend Security Audit
       run: |
