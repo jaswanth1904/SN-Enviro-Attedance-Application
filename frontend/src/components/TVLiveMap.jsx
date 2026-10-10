@@ -248,24 +248,30 @@ const TVLiveMap = () => {
     return (
         <div className={`h-screen w-screen overflow-hidden relative ${isDark ? 'bg-[#0a0a0a]' : 'bg-[#f8fafc]'}`}>
             
-            {/* Cinematic Header - Responsive for Mobile, Laptop, and TV */}
-            <div className="absolute top-4 left-4 sm:top-6 sm:left-6 md:top-8 md:left-8 z-[500] pointer-events-none">
-                <div className={`pointer-events-auto backdrop-blur-2xl border px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 rounded-2xl md:rounded-3xl shadow-2xl transition-all ${isDark ? 'bg-black/40 border-white/10' : 'bg-white/70 border-slate-200/50'}`}>
-                    <h1 className={`text-xl sm:text-2xl md:text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: 'var(--font-serif)' }}>
-                        SN Enviro<span className="text-brand-primary">.</span>
-                    </h1>
-                    <div className="flex items-center gap-2 md:gap-3 mt-1 md:mt-1.5">
-                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <p className={`font-bold tracking-[0.1em] md:tracking-[0.2em] text-[8px] md:text-[10px] uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Global Command Center</p>
+            {/* Cinematic Header - Responsive and Compact for all screens */}
+            <div className="absolute top-3 left-3 sm:top-5 sm:left-5 md:top-6 md:left-6 z-[500] pointer-events-none">
+                <div className={`pointer-events-auto backdrop-blur-2xl border px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl shadow-2xl transition-all ${isDark ? 'bg-black/40 border-white/10' : 'bg-white/80 border-slate-200/50'}`}>
+                    
+                    <div className="flex items-center gap-2 md:gap-3">
+                        {/* Company Logo */}
+                        <img 
+                            src="/logo.png" 
+                            alt="SN Enviro" 
+                            className={`h-6 sm:h-8 md:h-10 object-contain transition-all drop-shadow-md ${isDark ? 'brightness-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'mix-blend-multiply'}`}
+                        />
+                        {/* Company Title */}
+                        <h1 className={`text-lg sm:text-xl md:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: 'var(--font-serif)' }}>
+                            SN Enviro
+                        </h1>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 md:gap-2 mt-1 sm:mt-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <p className={`font-bold tracking-[0.1em] sm:tracking-[0.15em] text-[8px] sm:text-[9px] md:text-[11px] uppercase ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                            Global Command Center
+                        </p>
                     </div>
                 </div>
-            </div>
-
-            {/* Dark Mode Toggle - Responsive positioning */}
-            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 z-[500]">
-                <button onClick={() => setIsDark(!isDark)} className={`backdrop-blur-xl border p-3 md:p-4 rounded-xl md:rounded-2xl shadow-2xl transition-all hover:scale-105 ${isDark ? 'bg-black/50 border-white/10 text-white hover:bg-black/70' : 'bg-white/80 border-slate-200 text-slate-800 hover:bg-white'}`}>
-                    {isDark ? <Sun className="w-5 h-5 md:w-6 md:h-6" /> : <Moon className="w-5 h-5 md:w-6 md:h-6" />}
-                </button>
             </div>
 
             <div style={{ height: '100vh', width: '100vw' }} className={isDark ? 'dark-theme-map' : 'light-theme-map'}>
