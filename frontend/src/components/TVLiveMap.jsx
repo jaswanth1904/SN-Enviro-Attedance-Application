@@ -101,9 +101,39 @@ const authorizedPlants = [
     { name: "Ultratech Cement Limited (unit: Rajashree Cement Works )", lat: 17.1408, lng: 77.1726 }
 ];
 
-// Custom Glowing Icon
+// Premium Custom Icons for Industrial Plants
+const createPlantIcon = (isActive, isDark) => {
+    // Unoccupied plants are vibrant amber/gold, Active ones are glowing emerald
+    const color = isActive ? '#10b981' : '#f59e0b'; // Colorful theme!
+    const size = isActive ? 22 : 16; // Slightly larger for better colorful visibility
+    const glow = isActive ? `box-shadow: 0 0 15px ${color};` : `box-shadow: 0 0 10px ${color}80;`; // Add a soft glow to unoccupied plants too
+    
+    return L.divIcon({
+        className: 'custom-div-icon',
+        html: `
+            <div style="
+                width: ${size}px; 
+                height: ${size}px; 
+                background-color: ${color}; 
+                border-radius: 50%; 
+                border: 2px solid ${isDark ? '#0f172a' : '#ffffff'};
+                ${glow}
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            ">
+                ${!isActive ? `<div style="width: 4px; height: 4px; background: ${isDark ? '#cbd5e1' : '#ffffff'}; border-radius: 50%;"></div>` : ''}
+            </div>
+        `,
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2]
+    });
+};
+
+// Engineer Icon (Including WFH employees)
 const createGlowingIcon = (role, isDark) => {
-    let color = '#3b82f6'; // Blue for Staff
+    let color = '#3b82f6'; // Blue for Staff / WFH
     if (role === 'Application Engineer') color = '#ef4444'; // Red
     else if (role === 'Site Engineer') color = '#10b981'; // Green
     else if (role === 'Admin') color = '#a855f7'; // Purple
@@ -112,34 +142,33 @@ const createGlowingIcon = (role, isDark) => {
         className: 'custom-div-icon',
         html: `
             <div style="
-                width: 28px; 
-                height: 28px; 
+                width: 26px; 
+                height: 26px; 
                 background-color: ${color}; 
                 border-radius: 50%; 
-                border: 4px solid ${isDark ? '#1e293b' : '#ffffff'};
+                border: 3px solid ${isDark ? '#0f172a' : '#ffffff'};
                 box-shadow: 0 0 20px ${color}, inset 0 0 8px rgba(255,255,255,0.7);
-                animation: pulse 2.5s infinite;
+                animation: pulse-ring 2s infinite;
             "></div>
             <style>
-                @keyframes pulse {
-                    0% { box-shadow: 0 0 0 0 ${color}90; }
-                    70% { box-shadow: 0 0 0 25px rgba(0,0,0,0); }
+                @keyframes pulse-ring {
+                    0% { box-shadow: 0 0 0 0 ${color}80; }
+                    70% { box-shadow: 0 0 0 15px rgba(0,0,0,0); }
                     100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
                 }
             </style>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
     });
 };
 
 const TVLiveMap = () => {
     const [engineers, setEngineers] = useState([]);
     const [geoData, setGeoData] = useState(null);
-    const [isDark, setIsDark] = useState(false); // Defaulting to light for better colorful look
+    const [isDark, setIsDark] = useState(false); // Default to Light theme as requested by user
 
     useEffect(() => {
-        // Fetch India States GeoJSON for colorful political map overlay
         fetch('/india-states.json')
             .then(res => res.json())
             .then(data => setGeoData(data))
@@ -147,10 +176,7 @@ const TVLiveMap = () => {
 
         const fetchInitialData = async () => {
             try {
-                // Fetch today's active attendances from the PUBLIC 24/7 endpoint
                 const res = await api.get('/attendance/tv-reports');
-                
-                // Backend now perfectly returns exactly today's active attendances
                 const activeAttendances = res.data.data;
 
                 const activeMarkers = activeAttendances.map(a => ({
@@ -163,7 +189,6 @@ const TVLiveMap = () => {
                     selfie: a.selfieUrl
                 }));
 
-                // Deduplicate by user (latest location)
                 const uniqueMarkers = [];
                 const seenUsers = new Set();
                 for (const marker of activeMarkers) {
@@ -172,7 +197,6 @@ const TVLiveMap = () => {
                         uniqueMarkers.push(marker);
                     }
                 }
-
                 setEngineers(uniqueMarkers);
             } catch (error) {
                 console.error("Failed to load map data", error);
@@ -181,16 +205,13 @@ const TVLiveMap = () => {
 
         fetchInitialData();
 
-        // Connect WebSocket
-        const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5002');
-        
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5002';
+        const socketUrl = apiUrl.replace(/\/api$/, '');
+        const socket = io(socketUrl);
         socket.on('attendance_logged', (newLog) => {
-            // Check if it's a checkout
             if (newLog.checkOut) {
-                // Remove from map
                 setEngineers(prev => prev.filter(e => e.name !== newLog.user.name));
             } else {
-                // Add or update on map
                 const newMarker = {
                     id: newLog._id,
                     name: newLog.user.name,
@@ -199,7 +220,6 @@ const TVLiveMap = () => {
                     site: newLog.locationName || (newLog.site ? newLog.site.name : 'Unknown'),
                     time: new Date(newLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 };
-                
                 setEngineers(prev => {
                     const filtered = prev.filter(e => e.name !== newMarker.name);
                     return [newMarker, ...filtered];
@@ -208,175 +228,150 @@ const TVLiveMap = () => {
         });
 
         return () => socket.disconnect();
-    }, []); // Removed user dependency since it's 24/7 public
+    }, []);
 
-    // Styling function to draw crisp state borders without any fill colors
-    const getFeatureStyle = (feature) => {
-        return {
-            fillColor: 'transparent',
-            weight: 2.5, // Stronger borders for Indian layout
-            opacity: 1,
-            color: isDark ? 'rgba(255,255,255,0.4)' : '#334155', // Clear state borders
-            dashArray: '5, 5',
-            fillOpacity: 0 // NO COLORS, just the borders!
-        };
-    };
+    const getFeatureStyle = () => ({
+        fillColor: 'transparent',
+        weight: 1.5,
+        opacity: 0.3,
+        color: isDark ? '#64748b' : '#94a3b8',
+        dashArray: '3, 6',
+        fillOpacity: 0
+    });
 
-    // No auth required - Public 24/7 TV Link
-
-    // High Resolution Detailed Map Tiles (Rivers, Towns, Cities) - NO WATERMARKS
+    // Free Premium Tiles (Using OSM + CSS Inversion for perfect dark mode)
     const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         
     return (
-        <div className="h-screen w-screen overflow-hidden bg-black relative">
+        <div className={`h-screen w-screen overflow-hidden relative ${isDark ? 'bg-[#0a0a0a]' : 'bg-[#f8fafc]'}`}>
             
-            {/* Clean Professional Top Left Text Overlay */}
-            <div className="absolute top-8 left-8 z-[500] pointer-events-none">
-                <div className="pointer-events-auto bg-black/60 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-2xl shadow-2xl">
-                    <h1 className="text-2xl font-black text-white tracking-tighter" style={{ fontFamily: 'var(--font-serif)' }}>SN Enviro.</h1>
-                    <p className="text-blue-400 font-bold tracking-widest text-xs mt-1 uppercase">MD's Live Map</p>
+            {/* Cinematic Header - Responsive for Mobile, Laptop, and TV */}
+            <div className="absolute top-4 left-4 sm:top-6 sm:left-6 md:top-8 md:left-8 z-[500] pointer-events-none">
+                <div className={`pointer-events-auto backdrop-blur-2xl border px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 rounded-2xl md:rounded-3xl shadow-2xl transition-all ${isDark ? 'bg-black/40 border-white/10' : 'bg-white/70 border-slate-200/50'}`}>
+                    <h1 className={`text-xl sm:text-2xl md:text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: 'var(--font-serif)' }}>
+                        SN Enviro<span className="text-brand-primary">.</span>
+                    </h1>
+                    <div className="flex items-center gap-2 md:gap-3 mt-1 md:mt-1.5">
+                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <p className={`font-bold tracking-[0.1em] md:tracking-[0.2em] text-[8px] md:text-[10px] uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Global Command Center</p>
+                    </div>
                 </div>
             </div>
 
-            <div className="absolute top-10 right-10 z-[500]">
-                <button onClick={() => setIsDark(!isDark)} className="bg-black/60 backdrop-blur-xl border border-white/10 p-4 rounded-full text-white shadow-2xl hover:bg-black/80 transition-all">
-                    {isDark ? <Sun size={28} /> : <Moon size={28} />}
+            {/* Dark Mode Toggle - Responsive positioning */}
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 z-[500]">
+                <button onClick={() => setIsDark(!isDark)} className={`backdrop-blur-xl border p-3 md:p-4 rounded-xl md:rounded-2xl shadow-2xl transition-all hover:scale-105 ${isDark ? 'bg-black/50 border-white/10 text-white hover:bg-black/70' : 'bg-white/80 border-slate-200 text-slate-800 hover:bg-white'}`}>
+                    {isDark ? <Sun className="w-5 h-5 md:w-6 md:h-6" /> : <Moon className="w-5 h-5 md:w-6 md:h-6" />}
                 </button>
             </div>
 
-            {/* Pristine Fullscreen Map Area */}
-            <div className={isDark ? 'dark-map-container' : ''} style={{ height: '100vh', width: '100vw' }}>
+            <div style={{ height: '100vh', width: '100vw' }} className={isDark ? 'dark-theme-map' : 'light-theme-map'}>
                 <MapContainer 
-                    center={[20.5937, 78.9629]} // Center of India
-                    zoom={5} 
-                    style={{ height: '100%', width: '100%' }}
+                    center={[22.5937, 78.9629]} 
+                    zoom={window.innerWidth < 768 ? 4 : 5.2} 
+                    style={{ height: '100%', width: '100%', background: 'transparent' }}
                     zoomControl={false}
-                    attributionControl={false} // Cleanest possible UI
+                    attributionControl={false}
                 >
-                    <TileLayer
-                        url={tileUrl}
-                        maxZoom={19}
-                    />
-                    
+                    <TileLayer url={tileUrl} maxZoom={19} />
                     {geoData && <GeoJSON data={geoData} style={getFeatureStyle} />}
 
+                    {/* Render Plants */}
                     {authorizedPlants.map((plant, index) => {
                         const activeEngineers = engineers.filter(e => e.site === plant.name);
                         const isActive = activeEngineers.length > 0;
                         const engineerNames = isActive ? activeEngineers.map(e => e.name).join(', ') : 'No Engineer Assigned';
                         
                         return (
-                        <React.Fragment key={`plant-${index}`}>
-                            <Circle 
-                                center={[plant.lat, plant.lng]} 
-                                radius={1000} 
-                                pathOptions={{ color: isActive ? '#10b981' : '#ef4444', fillColor: isActive ? '#10b981' : '#ef4444', fillOpacity: 0.1, weight: 1.5 }} 
-                            />
-                            <Marker position={[plant.lat, plant.lng]}>
+                            <Marker key={`plant-${index}`} position={[plant.lat, plant.lng]} icon={createPlantIcon(isActive, isDark)}>
                                 <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                                    <div className={`flex flex-col gap-2 p-3 rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl border ${isDark ? 'bg-slate-900/95 border-white/10' : 'bg-white/95 border-slate-200/60'}`} style={{ minWidth: '220px', color: isDark ? '#ffffff' : '#1e293b' }}>
-                                        <h3 className="font-bold text-sm tracking-tight leading-snug">{plant.name}</h3>
-                                        <div className="flex flex-col gap-1 mt-1 border-t border-slate-500/20 pt-2">
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                                                <span style={{ color: isActive ? '#3b82f6' : 'inherit' }}>{engineerNames}</span>
+                                    <div className={`flex flex-col gap-2 p-3 rounded-2xl shadow-2xl backdrop-blur-xl border ${isDark ? 'bg-slate-900/90 border-slate-700/50' : 'bg-white/95 border-slate-200'} transition-all`} style={{ minWidth: '220px', color: isDark ? '#f8fafc' : '#0f172a' }}>
+                                        <h3 className="font-bold text-sm tracking-tight">{plant.name}</h3>
+                                        <div className={`flex flex-col gap-1.5 mt-1 border-t pt-2 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                                            <div className="flex items-center gap-2 text-xs font-medium opacity-80">
+                                                <Activity size={12} className={isActive ? 'text-emerald-500' : ''} />
+                                                <span style={{ color: isActive ? (isDark ? '#34d399' : '#059669') : 'inherit' }}>{engineerNames}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                                <span>Industrial Site, India</span>
-                                            </div>
-                                        </div>
-                                        <div className="mt-2">
-                                            {isActive ? (
-                                                <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">Active</span>
-                                            ) : (
-                                                <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Unoccupied</span>
-                                            )}
                                         </div>
                                     </div>
                                 </Tooltip>
                             </Marker>
-                        </React.Fragment>
-                    )})}
+                        );
+                    })}
 
+                    {/* Render Engineers */}
                     {engineers.map((engineer) => (
                         <Marker 
                             key={engineer.id} 
                             position={engineer.position}
                             icon={createGlowingIcon(engineer.role, isDark)}
-                            eventHandlers={{
-                                mouseover: (e) => e.target.openPopup(),
-                                mouseout: (e) => e.target.closePopup()
-                            }}
+                            eventHandlers={{ mouseover: (e) => e.target.openPopup(), mouseout: (e) => e.target.closePopup() }}
                         >
-                            <Popup className={isDark ? 'dark-popup pristine-card' : 'pristine-card'} autoPan={false} closeButton={false}>
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg text-white shadow-inner ${isDark ? 'bg-blue-600' : 'bg-blue-500'}`}>
-                                        {engineer.name.charAt(0).toUpperCase()}
+                            <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false} closeButton={false}>
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl text-white shadow-lg ${isDark ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'}`}>
+                                            {engineer.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-lg m-0 leading-none tracking-tight">{engineer.name}</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-widest mt-1 text-brand-primary">{engineer.role}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-black text-lg m-0 leading-tight tracking-tight" style={{ color: isDark ? '#ffffff' : '#0f172a' }}>{engineer.name}</p>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest m-0" style={{ color: isDark ? '#60a5fa' : '#3b82f6' }}>{engineer.role}</p>
+                                    <div className={`mt-1 pt-3 border-t ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                                        <p className="font-semibold text-xs leading-snug flex items-start gap-2 opacity-90">
+                                            <span className="mt-0.5 text-brand-primary">•</span>
+                                            <span>{engineer.site}</span>
+                                        </p>
+                                    </div>
+                                    <div className="mt-1 flex items-center justify-between">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 opacity-70">
+                                            <Clock size={12} /> {engineer.time}
+                                        </p>
+                                        <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-full">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Live</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="mt-2 pt-2 border-t border-slate-500/30">
-                                    <p className="font-bold text-sm leading-snug flex items-start gap-1.5" style={{ color: isDark ? '#e2e8f0' : '#334155' }}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 opacity-70"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                        <span>{engineer.site}</span>
-                                    </p>
-                                </div>
-                                <div className="mt-1 flex items-center justify-between">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-                                        <Clock size={10} /> {engineer.time}
-                                    </p>
-                                    <div className="flex items-center gap-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                        <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Active</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </Popup>
-                    </Marker>
-                ))}
-            </MapContainer>
-        </div>
-        
-        {/* CSS for custom pristine popups and Dark Mode Map Inversion */}
-        <style>{`
-            .dark-map-container .leaflet-layer,
-            .dark-map-container .leaflet-control-zoom-in,
-            .dark-map-container .leaflet-control-zoom-out,
-            .dark-map-container .leaflet-control-attribution {
-                filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-            }
-            .pristine-card .leaflet-popup-content-wrapper {
-                border-radius: 16px;
-                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-                padding: 4px;
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(12px);
-                border: 1px solid rgba(0,0,0,0.05);
-            }
-            .pristine-card .leaflet-popup-content {
-                margin: 12px;
-                min-width: 220px;
-            }
-            .dark-popup.pristine-card .leaflet-popup-content-wrapper {
-                background: rgba(15, 23, 42, 0.95);
-                border: 1px solid rgba(255,255,255,0.1);
-                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
-            }
-            .leaflet-popup-tip-container, .leaflet-tooltip-tip {
-                display: none; /* Remove the arrow for a cleaner floating look */
-            }
-            .leaflet-tooltip {
-                background: transparent;
-                border: none;
-                box-shadow: none;
-                padding: 0;
-            }
-        `}</style>
+                            </Popup>
+                        </Marker>
+                    ))}
+                </MapContainer>
+            </div>
+            
+            <style>{`
+                .dark-theme-map .leaflet-layer {
+                    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+                }
+                .custom-premium-popup .leaflet-popup-content-wrapper {
+                    border-radius: 20px;
+                    padding: 4px;
+                    box-shadow: 0 30px 60px -15px rgba(0,0,0,0.5);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    backdrop-filter: blur(16px);
+                }
+                .custom-premium-popup.light .leaflet-popup-content-wrapper {
+                    background: rgba(255, 255, 255, 0.95);
+                    color: #0f172a;
+                    border: 1px solid rgba(0,0,0,0.05);
+                }
+                .custom-premium-popup.dark .leaflet-popup-content-wrapper {
+                    background: rgba(15, 23, 42, 0.95);
+                    color: #f8fafc;
+                    box-shadow: 0 30px 60px -15px rgba(0,0,0,0.8);
+                }
+                .custom-premium-popup .leaflet-popup-content {
+                    margin: 14px;
+                    min-width: 240px;
+                }
+                .leaflet-popup-tip-container, .leaflet-tooltip-tip { display: none !important; }
+                .leaflet-tooltip { background: transparent; border: none; box-shadow: none; padding: 0; }
+                .leaflet-container { background: transparent !important; }
+                
+                /* Hide Leaflet watermark entirely for a cleaner look */
+                .leaflet-control-container .leaflet-bottom.leaflet-right { display: none; }
+            `}</style>
         </div>
     );
 };

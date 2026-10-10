@@ -105,8 +105,8 @@ const AppContent = () => {
                 <Route path="settings" element={<Settings />} />
               </Route>
               
-              {/* Dedicated TV Map Route (Bypasses Layout for Fullscreen Immersion, Protected for Privacy) */}
-              <Route path="/tv-map" element={user && (user.role === 'Admin' || user.role === 'Application Engineer') ? <TVLiveMap /> : <Navigate to="/" />} />
+              {/* Dedicated TV Map Route (Bypasses Layout for Fullscreen Immersion, Publicly accessible for MD) */}
+              <Route path="/tv-map" element={<TVLiveMap />} />
 
               {/* New Futuristic Geo-Attendance Routes */}
               <Route path="/mark-attendance" element={user ? <PageWrapper><GeoAttendanceMark /></PageWrapper> : <Navigate to="/" />} />
