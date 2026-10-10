@@ -133,33 +133,36 @@ const createPlantIcon = (isActive, isDark) => {
 
 // Engineer Icon (Including WFH employees)
 const createGlowingIcon = (role, isDark) => {
-    let color = '#3b82f6'; // Blue for Staff / WFH
-    if (role === 'Application Engineer') color = '#ef4444'; // Red
-    else if (role === 'Site Engineer') color = '#10b981'; // Green
-    else if (role === 'Admin') color = '#a855f7'; // Purple
+    // Make all active engineers a beautiful glowing emerald green to match the UI perfectly
+    let color = '#10b981'; 
 
     return L.divIcon({
         className: 'custom-div-icon',
         html: `
             <div style="
-                width: 26px; 
-                height: 26px; 
+                width: 22px; 
+                height: 22px; 
                 background-color: ${color}; 
                 border-radius: 50%; 
-                border: 3px solid ${isDark ? '#0f172a' : '#ffffff'};
-                box-shadow: 0 0 20px ${color}, inset 0 0 8px rgba(255,255,255,0.7);
-                animation: pulse-ring 2s infinite;
-            "></div>
+                border: 2px solid ${isDark ? '#0f172a' : '#ffffff'};
+                box-shadow: 0 0 15px ${color};
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: gentle-pulse 2s infinite;
+            ">
+                <div style="width: 6px; height: 6px; background: ${isDark ? '#0f172a' : '#ffffff'}; border-radius: 50%;"></div>
+            </div>
             <style>
-                @keyframes pulse-ring {
-                    0% { box-shadow: 0 0 0 0 ${color}80; }
-                    70% { box-shadow: 0 0 0 15px rgba(0,0,0,0); }
-                    100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+                @keyframes gentle-pulse {
+                    0% { box-shadow: 0 0 5px ${color}; transform: scale(1); }
+                    50% { box-shadow: 0 0 20px ${color}; transform: scale(1.1); }
+                    100% { box-shadow: 0 0 5px ${color}; transform: scale(1); }
                 }
             </style>
         `,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
     });
 };
 
