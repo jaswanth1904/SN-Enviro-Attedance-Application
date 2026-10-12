@@ -520,11 +520,11 @@ const Dashboard = () => {
                                                 <span>Lng: {coords.longitude.toFixed(4)}</span>
                                             </div>
                                             
-                                            {/* Daily Login Time Indicator */}
-                                            {dailyRecords[0] && (
+                                            {/* Daily Login Time Indicator - Only display today's login time */}
+                                            {dailyRecords[0] && new Date(dailyRecords[0].earliestLogin).toDateString() === new Date().toDateString() && (
                                                 <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full mt-2">
                                                     <Clock size={14} /> 
-                                                    Login Time: {new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    Daily Login Time: {new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             )}
                                         </>
@@ -608,7 +608,7 @@ const Dashboard = () => {
                                     </div>
                                     <p className="text-xs font-medium text-md-on-surface-variant italic">Live tracking of your current work session.</p>
                                     
-                                    {dailyRecords[0] && (
+                                    {dailyRecords[0] && new Date(dailyRecords[0].earliestLogin).toDateString() === new Date().toDateString() && (
                                         <div className="mt-8 pt-6 border-t border-slate-200 w-full max-w-sm">
                                             <div className="flex justify-between items-center text-sm font-medium">
                                                 <span className="text-slate-500 flex items-center gap-2"><Clock size={16}/> Daily Login Time:</span>

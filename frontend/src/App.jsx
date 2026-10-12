@@ -108,8 +108,8 @@ const AppContent = () => {
               {/* Dedicated TV Map Route (Bypasses Layout for Fullscreen Immersion, Publicly accessible for MD) */}
               <Route path="/tv-map" element={<TVLiveMap />} />
 
-              {/* New Futuristic Geo-Attendance Routes */}
-              <Route path="/mark-attendance" element={user ? <PageWrapper><GeoAttendanceMark /></PageWrapper> : <Navigate to="/" />} />
+              {/* Futuristic Geo-Attendance & Site Routes */}
+              <Route path="/mark-attendance" element={<Navigate to="/dashboard" replace />} />
               <Route path="/explain-absence/:token" element={<PageWrapper><LateExplanationForm /></PageWrapper>} />
               <Route path="/log-site" element={user ? <PageWrapper><PlantSiteLogger /></PageWrapper> : <Navigate to="/" />} />
             </Routes>

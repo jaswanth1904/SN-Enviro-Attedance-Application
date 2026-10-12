@@ -105,9 +105,6 @@ const Navbar = ({ onAuthClick }) => {
                                             {user?.role !== 'Admin' && (
                                                 <>
                                                     <div className="px-4 py-2 mt-2 text-[11px] font-bold text-md-on-surface-variant/50 uppercase tracking-widest">Attendance & Tracking</div>
-                                                    <Link to="/mark-attendance" onClick={closeAll} className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-slate-100 text-slate-700 text-sm font-medium transition-all group">
-                                                        <Navigation size={18} className="group-hover:text-brand-primary" /> Mark Geo-Attendance
-                                                    </Link>
                                                     <Link to="/log-site" onClick={closeAll} className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-slate-100 text-slate-700 text-sm font-medium transition-all group">
                                                         <MapPin size={18} className="group-hover:text-brand-primary" /> Log Site Visit
                                                     </Link>
@@ -184,9 +181,6 @@ const Navbar = ({ onAuthClick }) => {
                                         
                                         {user?.role !== 'Admin' && (
                                             <>
-                                                <Link to="/mark-attendance" onClick={closeAll} className="flex items-center gap-4 p-4 rounded-xl bg-blue-50 border border-blue-200 font-bold text-blue-700 active:scale-95 transition-transform shadow-sm">
-                                                    <Navigation size={20} /> Mark Geo-Attendance
-                                                </Link>
                                                 <Link to="/log-site" onClick={closeAll} className="flex items-center gap-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 font-bold text-emerald-700 active:scale-95 transition-transform shadow-sm">
                                                     <MapPin size={20} /> Log Site Visit
                                                 </Link>
