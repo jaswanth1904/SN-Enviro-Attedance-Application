@@ -507,24 +507,24 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-md-surface pt-32 pb-20 px-8 relative">
+        <div className="min-h-screen bg-md-surface pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-8 relative">
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* M3 Header Section */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center text-center justify-center gap-6 mb-10 mt-4 md:mt-8"
+                    className="flex flex-col items-center text-center justify-center gap-4 sm:gap-6 mb-6 sm:mb-10 mt-2 sm:mt-4 md:mt-8"
                 >
                     <div className="flex flex-col items-center">
-                        <div className="flex items-center gap-3 mb-6">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                             <StatusBadge active={isCheckedIn} />
-                            <span className="text-brand-primary/60 font-bold text-[10px] uppercase tracking-widest">Authenticated node</span>
+                            <span className="text-brand-primary/60 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest">Authenticated node</span>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-3">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-2 sm:mb-3">
                             SN Enviro <span className="text-brand-primary">Portal</span>
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm flex items-center justify-center gap-2 max-w-sm">
-                            <ShieldCheck size={16} className="text-brand-primary" /> Secure Enterprise Access
+                        <p className="text-slate-500 font-medium text-xs sm:text-sm flex items-center justify-center gap-2 max-w-sm px-4">
+                            <ShieldCheck size={16} className="text-brand-primary shrink-0" /> Secure Enterprise Access
                         </p>
                     </div>
                 </motion.div>
@@ -532,7 +532,7 @@ const Dashboard = () => {
 
 
                 {/* M3 Tab Navigation */}
-                <div className="flex items-center gap-3 mb-10 overflow-x-auto pb-4 scrollbar-hide">
+                <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-10 overflow-x-auto pb-3 sm:pb-4 scrollbar-hide w-full">
                     {[
                         { id: 'attendance', label: 'Attendance Feed', icon: Activity },
                         { id: 'control', label: 'Control Panel', icon: ShieldCheck },
@@ -549,9 +549,9 @@ const Dashboard = () => {
                             key={tab.id}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-3 px-8 py-3.5 rounded-full font-bold uppercase tracking-widest text-[11px] transition-all whitespace-nowrap ${activeTab === tab.id ? 'm3-btn-filled shadow-md' : 'm3-btn-tonal text-md-on-surface-variant'}`}
+                            className={`flex items-center gap-2 sm:gap-3 px-5 sm:px-7 md:px-8 py-2.5 sm:py-3.5 rounded-full font-bold uppercase tracking-wider sm:tracking-widest text-[10px] sm:text-[11px] transition-all whitespace-nowrap shrink-0 ${activeTab === tab.id ? 'm3-btn-filled shadow-md' : 'm3-btn-tonal text-md-on-surface-variant'}`}
                         >
-                            <tab.icon size={18} /> {tab.label}
+                            <tab.icon size={16} className="sm:w-[18px] sm:h-[18px]" /> {tab.label}
                         </motion.button>
                     ))}
                 </div>
@@ -563,15 +563,15 @@ const Dashboard = () => {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="flex flex-col items-center justify-center max-w-md mx-auto w-full pt-4 md:pt-10 pb-20"
+                            className="flex flex-col items-center justify-center max-w-md mx-auto w-full pt-2 sm:pt-6 md:pt-10 pb-16 sm:pb-20"
                         >
-                            <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 w-full border border-slate-100 relative overflow-hidden flex flex-col items-center text-center group">
+                            <div className="bg-white rounded-2xl sm:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 sm:p-8 w-full border border-slate-100 relative overflow-hidden flex flex-col items-center text-center group">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
                                 
-                                <h3 className="text-3xl font-medium text-slate-800 mb-2 tracking-tight relative z-10 font-serif">
+                                <h3 className="text-2xl sm:text-3xl font-medium text-slate-800 mb-1.5 sm:mb-2 tracking-tight relative z-10 font-serif">
                                     {isCheckedIn ? 'Shift Active' : isShiftCompletedToday ? 'Shift Completed' : 'Ready to Work?'}
                                 </h3>
-                                <p className="text-slate-500 font-light text-sm mb-8 relative z-10">
+                                <p className="text-slate-500 font-light text-xs sm:text-sm mb-6 sm:mb-8 relative z-10">
                                     {isCheckedIn 
                                         ? 'You are currently logged in.' 
                                         : isShiftCompletedToday 
@@ -579,29 +579,29 @@ const Dashboard = () => {
                                             : 'Verify your location and login.'}
                                 </p>
 
-                                <div className="w-full bg-slate-50 rounded-[24px] p-6 mb-8 border border-slate-100 flex flex-col items-center relative z-10">
-                                    <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center text-blue-600 mb-4">
-                                        <MapPin size={28} strokeWidth={1.5} />
+                                <div className="w-full bg-slate-50/90 rounded-2xl sm:rounded-[24px] p-4 sm:p-6 mb-6 sm:mb-8 border border-slate-100 flex flex-col items-center relative z-10">
+                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white shadow-sm flex items-center justify-center text-blue-600 mb-3 sm:mb-4">
+                                        <MapPin size={24} className="sm:w-7 sm:h-7" strokeWidth={1.5} />
                                     </div>
                                     
                                     {geoLoading ? (
                                         <div className="flex flex-col items-center gap-2">
-                                            <Loader2 size={24} className="animate-spin text-slate-400" />
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Login</span>
+                                            <Loader2 size={22} className="animate-spin text-slate-400" />
+                                            <span className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Acquiring GPS...</span>
                                         </div>
                                     ) : coords ? (
                                         <>
-                                            <h4 className="text-lg font-bold text-slate-800 mb-1">{city || 'Location Active'}</h4>
-                                            <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 mt-2 mb-3">
+                                            <h4 className="text-base sm:text-lg font-bold text-slate-800 mb-1 leading-snug">{city || 'Location Active'}</h4>
+                                            <div className="flex items-center justify-center flex-wrap gap-2 text-[10px] sm:text-[11px] text-slate-500 font-mono bg-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-sm border border-slate-100 mt-2 mb-2 sm:mb-3">
                                                 <span>Lat: {coords.latitude.toFixed(4)}</span>
                                                 <div className="w-1 h-1 rounded-full bg-slate-300" />
                                                 <span>Lng: {coords.longitude.toFixed(4)}</span>
                                             </div>
                                             
-                                            {/* Daily Login Time Indicator - Only display today's login time */}
+                                            {/* Today's Login Time Indicator */}
                                             {dailyRecords[0] && new Date(dailyRecords[0].earliestLogin).toDateString() === new Date().toDateString() && (
-                                                <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full mt-2">
-                                                    <Clock size={14} /> 
+                                                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full mt-1.5">
+                                                    <Clock size={13} className="shrink-0" /> 
                                                     Today's Login Time: {new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             )}
@@ -615,31 +615,31 @@ const Dashboard = () => {
                                 </div>
 
                                 {isCheckedIn && (
-                                    <div className="mb-6 flex flex-col items-center">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Active Session Duration</span>
-                                        <span className="text-3xl font-mono font-bold text-slate-800 tracking-tight">{sessionTimer}</span>
+                                    <div className="mb-5 sm:mb-6 flex flex-col items-center">
+                                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Active Session Duration</span>
+                                        <span className="text-2xl sm:text-3xl font-mono font-bold text-slate-800 tracking-tight">{sessionTimer}</span>
                                     </div>
                                 )}
 
                                 {isCheckedIn ? (
-                                    <div className="w-full py-5 px-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 text-center flex flex-col items-center justify-center gap-2 relative z-10 shadow-sm backdrop-blur-sm">
-                                        <div className="flex items-center gap-2.5 text-emerald-700 font-extrabold text-xs sm:text-sm uppercase tracking-wider">
-                                            <span className="relative flex h-3 w-3">
+                                    <div className="w-full py-4 sm:py-5 px-4 sm:px-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 text-center flex flex-col items-center justify-center gap-1.5 sm:gap-2 relative z-10 shadow-sm backdrop-blur-sm">
+                                        <div className="flex items-center gap-2 text-emerald-700 font-extrabold text-xs sm:text-sm uppercase tracking-wider">
+                                            <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-emerald-500"></span>
                                             </span>
                                             Shift In Progress
                                         </div>
-                                        <p className="text-[11px] sm:text-xs text-slate-500 font-medium leading-relaxed">
+                                        <p className="text-[10px] sm:text-xs text-slate-500 font-medium leading-relaxed">
                                             Automatic shift checkout will be recorded at <strong>7:00 PM IST</strong>.
                                         </p>
                                     </div>
                                 ) : isShiftCompletedToday ? (
-                                    <div className="w-full py-5 px-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center flex flex-col items-center gap-2 relative z-10 shadow-sm">
-                                        <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm">
-                                            <CheckCircle2 size={18} /> Shift Concluded for Today
+                                    <div className="w-full py-4 sm:py-5 px-4 sm:px-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center flex flex-col items-center gap-1.5 sm:gap-2 relative z-10 shadow-sm">
+                                        <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs sm:text-sm">
+                                            <CheckCircle2 size={16} /> Shift Concluded for Today
                                         </div>
-                                        <p className="text-xs text-slate-500 font-medium">Auto-checkout completed. Fresh login will open tomorrow morning!</p>
+                                        <p className="text-[10px] sm:text-xs text-slate-500 font-medium">Auto-checkout completed. Fresh login will open tomorrow morning!</p>
                                     </div>
                                 ) : (
                                     <motion.button
@@ -647,7 +647,7 @@ const Dashboard = () => {
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => !coords ? refreshGeo() : handleCheckAction('in')}
                                         disabled={checkStatus === 'pending' || geoLoading || isAfterTenThirty}
-                                        className={`w-full py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-extrabold text-[11px] sm:text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 relative z-10 overflow-hidden group ${
+                                        className={`w-full py-4 sm:py-5 md:py-6 rounded-2xl sm:rounded-3xl font-extrabold text-[11px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] flex items-center justify-center gap-2.5 sm:gap-3 transition-all duration-300 relative z-10 overflow-hidden group shadow-lg ${
                                             !coords
                                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_8px_30px_rgba(79,70,229,0.3)] border border-blue-400/50 hover:shadow-[0_8px_40px_rgba(79,70,229,0.4)]'
                                                 : isAfterTenThirty 
@@ -716,7 +716,7 @@ const Dashboard = () => {
                                     {dailyRecords[0] && new Date(dailyRecords[0].earliestLogin).toDateString() === new Date().toDateString() && (
                                         <div className="mt-8 pt-6 border-t border-slate-200 w-full max-w-sm">
                                             <div className="flex justify-between items-center text-sm font-medium">
-                                                <span className="text-slate-500 flex items-center gap-2"><Clock size={16}/> Daily Login Time:</span>
+                                                <span className="text-slate-500 flex items-center gap-2"><Clock size={16}/> Today's Login Time:</span>
                                                 <span className="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full">{new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </div>

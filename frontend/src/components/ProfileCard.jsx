@@ -94,39 +94,39 @@ const ProfileCard = ({ attendanceData }) => {
                 )}
             </div>
 
-            <div className="px-6 sm:px-10 pb-8 relative">
+            <div className="px-4 sm:px-8 md:px-10 pb-6 sm:pb-8 relative">
                 {/* Avatar */}
-                <div className="relative -mt-16 mb-4 flex justify-between items-end">
-                    <div className="w-24 h-24 rounded-2xl bg-white p-1.5 shadow-lg relative">
-                        <div className="w-full h-full rounded-xl bg-gradient-to-tr from-blue-100 to-indigo-50 flex items-center justify-center text-blue-600 text-3xl font-black uppercase shadow-inner">
+                <div className="relative -mt-14 sm:-mt-16 mb-3 sm:mb-4 flex justify-between items-end">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white p-1.5 shadow-lg relative">
+                        <div className="w-full h-full rounded-xl bg-gradient-to-tr from-blue-100 to-indigo-50 flex items-center justify-center text-blue-600 text-2xl sm:text-3xl font-black uppercase shadow-inner">
                             {user?.name?.charAt(0) || 'U'}
                         </div>
                         {metrics.status === 'Present' && (
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full"></div>
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 border-white rounded-full"></div>
                         )}
                         {metrics.status === 'Offline' && (
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-slate-300 border-2 border-white rounded-full"></div>
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-slate-300 border-2 border-white rounded-full"></div>
                         )}
                     </div>
                 </div>
 
                 {!isEditing ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                         {/* Profile Info */}
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{user?.name}</h2>
-                            <p className="text-sm font-medium text-blue-600 flex items-center gap-1.5 mt-1">
+                            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">{user?.name}</h2>
+                            <p className="text-xs sm:text-sm font-medium text-blue-600 flex items-center gap-1.5 mt-1">
                                 <Briefcase size={14} /> {user?.role || 'Employee'}
                             </p>
                             {user?.empId && (
-                                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">EMP ID: {user.empId}</p>
+                                <p className="text-[11px] sm:text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">EMP ID: {user.empId}</p>
                             )}
-                            <p className="text-[10px] font-bold text-slate-300 mt-0.5 uppercase tracking-widest">SYS ID: {user?._id?.substring(0, 8)}</p>
+                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-300 mt-0.5 uppercase tracking-widest">SYS ID: {user?._id?.substring(0, 8)}</p>
                         </div>
 
                         {/* Stats Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mt-4 sm:mt-6">
+                            <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-100">
                                 <div className="flex items-center gap-2 text-slate-500 mb-2">
                                     <Clock size={16} />
                                     <span className="text-[10px] font-bold uppercase tracking-widest">Check-In</span>
