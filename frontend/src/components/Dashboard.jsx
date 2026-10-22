@@ -602,7 +602,7 @@ const Dashboard = () => {
                                             {dailyRecords[0] && new Date(dailyRecords[0].earliestLogin).toDateString() === new Date().toDateString() && (
                                                 <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full mt-2">
                                                     <Clock size={14} /> 
-                                                    Daily Login Time: {new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    Today's Login Time: {new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             )}
                                         </>
