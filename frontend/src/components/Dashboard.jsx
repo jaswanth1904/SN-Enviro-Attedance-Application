@@ -622,23 +622,18 @@ const Dashboard = () => {
                                 )}
 
                                 {isCheckedIn ? (
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleCheckAction('out')}
-                                        disabled={checkStatus === 'pending'}
-                                        className="w-full py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-extrabold text-[11px] sm:text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 relative z-10 overflow-hidden bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-[0_8px_30px_rgba(244,63,94,0.3)] border border-rose-400/50 hover:shadow-[0_8px_40px_rgba(244,63,94,0.4)] hover:-translate-y-1 group"
-                                    >
-                                        <div className="relative z-10 flex items-center justify-center gap-3 w-full">
-                                            {checkStatus === 'pending' ? (
-                                                <Loader2 className="animate-spin" size={20} />
-                                            ) : (
-                                                <>
-                                                    <LogOut size={18} strokeWidth={2.5} /> Check Out / End Shift
-                                                </>
-                                            )}
+                                    <div className="w-full py-5 px-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 text-center flex flex-col items-center justify-center gap-2 relative z-10 shadow-sm backdrop-blur-sm">
+                                        <div className="flex items-center gap-2.5 text-emerald-700 font-extrabold text-xs sm:text-sm uppercase tracking-wider">
+                                            <span className="relative flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                            </span>
+                                            Shift In Progress
                                         </div>
-                                    </motion.button>
+                                        <p className="text-[11px] sm:text-xs text-slate-500 font-medium leading-relaxed">
+                                            Automatic shift checkout will be recorded at <strong>7:00 PM IST</strong>.
+                                        </p>
+                                    </div>
                                 ) : isShiftCompletedToday ? (
                                     <div className="w-full py-5 px-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center flex flex-col items-center gap-2 relative z-10 shadow-sm">
                                         <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm">

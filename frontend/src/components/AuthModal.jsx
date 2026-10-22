@@ -211,18 +211,6 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                                 </div>
                                             </div>
-                                            
-                                            <div className="relative group">
-                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Employee ID"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                                                    required
-                                                    value={formData.empId}
-                                                    onChange={(e) => setFormData({ ...formData, empId: e.target.value })}
-                                                />
-                                            </div>
                                         </>
                                     )}
 

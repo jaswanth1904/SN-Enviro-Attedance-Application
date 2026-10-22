@@ -14,7 +14,7 @@ exports.register = async (req, res, next) => {
             email,
             phoneNumber,
             password,
-            empId,
+            empId: empId || '',
             role: role || 'Staff'
         });
 

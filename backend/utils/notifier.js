@@ -13,19 +13,24 @@ const sendOfficerNotification = async (userData, siteData, attendanceData) => {
         console.log(`NOTIFICATION: ${message}`);
         console.log('=================================');
 
+        const authUser = process.env.SMTP_EMAIL || process.env.EMAIL_USER;
+        const authPass = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS;
+        const fromEmail = process.env.FROM_EMAIL || 'attendance@snenviro.in';
+        const fromName = process.env.FROM_NAME || 'SN Enviro Attendance Pvt Ltd';
+
         // Email Integration (Free using Gmail/SMTP)
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        if (authUser && authPass) {
             const transporter = nodemailer.createTransport({
                 service: 'gmail',
                 auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS
+                    user: authUser,
+                    pass: authPass
                 }
             });
 
             const mailOptions = {
-                from: process.env.EMAIL_USER,
-                to: process.env.DM_EMAIL || process.env.EMAIL_USER,
+                from: `"${fromName}" <${fromEmail}>`,
+                to: process.env.DM_EMAIL || authUser,
                 subject: subject,
                 text: `${message}\n\nTimestamp: ${attendanceData.timestamp}\nStatus: ${attendanceData.status}`,
                 html: `
@@ -43,7 +48,7 @@ const sendOfficerNotification = async (userData, siteData, attendanceData) => {
             await transporter.sendMail(mailOptions);
             console.log('✅ Email Sent successfully to:', mailOptions.to);
         } else {
-            console.log('⚠️ Email Skip: EMAIL_USER or EMAIL_PASS not configured in .env');
+            console.log('⚠️ Email Skip: SMTP email/password not configured in .env');
         }
 
         return true;
@@ -58,18 +63,23 @@ const sendDailyReport = async (presentUsers, absentUsers) => {
         const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         const subject = `📋 Daily Attendance Report: ${today}`;
 
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        const authUser = process.env.SMTP_EMAIL || process.env.EMAIL_USER;
+        const authPass = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS;
+        const fromEmail = process.env.FROM_EMAIL || 'attendance@snenviro.in';
+        const fromName = process.env.FROM_NAME || 'SN Enviro Attendance Pvt Ltd';
+
+        if (authUser && authPass) {
             const transporter = nodemailer.createTransport({
                 service: 'gmail',
                 auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS
+                    user: authUser,
+                    pass: authPass
                 }
             });
 
             const mailOptions = {
-                from: process.env.EMAIL_USER,
-                to: process.env.DM_EMAIL || process.env.EMAIL_USER,
+                from: `"${fromName}" <${fromEmail}>`,
+                to: process.env.DM_EMAIL || authUser,
                 subject: subject,
                 html: `
                     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
@@ -113,7 +123,7 @@ const sendDailyReport = async (presentUsers, absentUsers) => {
             await transporter.sendMail(mailOptions);
             console.log('✅ Daily Report Email sent to DM');
         } else {
-            console.log('⚠️ Report Skip: Email credentials not configured');
+            console.log('⚠️ Report Skip: Email credentials not configured in .env');
         }
         return true;
     } catch (error) {

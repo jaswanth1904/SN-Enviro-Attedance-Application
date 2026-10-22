@@ -118,7 +118,9 @@ const ProfileCard = ({ attendanceData }) => {
                             <p className="text-sm font-medium text-blue-600 flex items-center gap-1.5 mt-1">
                                 <Briefcase size={14} /> {user?.role || 'Employee'}
                             </p>
-                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">EMP ID: {user?.empId || 'N/A'}</p>
+                            {user?.empId && (
+                                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">EMP ID: {user.empId}</p>
+                            )}
                             <p className="text-[10px] font-bold text-slate-300 mt-0.5 uppercase tracking-widest">SYS ID: {user?._id?.substring(0, 8)}</p>
                         </div>
 

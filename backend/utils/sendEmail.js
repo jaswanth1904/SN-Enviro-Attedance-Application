@@ -2,16 +2,21 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
     // Create reusable transporter object using the default SMTP transport
+    const authUser = process.env.SMTP_EMAIL || process.env.EMAIL_USER;
+    const authPass = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS;
+    const fromEmail = process.env.FROM_EMAIL || 'attendance@snenviro.in';
+    const fromName = process.env.FROM_NAME || 'SN Enviro Attendance Pvt Ltd';
+
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-            user: process.env.SMTP_EMAIL, // Must set in .env
-            pass: process.env.SMTP_PASSWORD // Must set in .env (App Password)
+            user: authUser,
+            pass: authPass
         }
     });
 
     const message = {
-        from: `${process.env.FROM_NAME || 'Admin'} <${process.env.SMTP_EMAIL}>`,
+        from: `"${fromName}" <${fromEmail}>`,
         to: options.email,
         subject: options.subject,
         html: options.message
