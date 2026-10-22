@@ -13,8 +13,9 @@ const LeaveHub = () => {
     useEffect(() => {
         fetchLeaves();
 
-        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5002'}/api`.replace('//api', '/api');
-        const socketUrl = apiUrl.replace('/api', '');
+        const raw = (import.meta.env.VITE_API_URL || 'http://localhost:5002').replace(/\/+$/, '');
+        const apiUrl = raw.endsWith('/api') ? raw : `${raw}/api`;
+        const socketUrl = apiUrl.replace(/\/api$/, '');
         const socket = io(socketUrl);
 
         socket.on('leave_status_updated', (updatedLeave) => {

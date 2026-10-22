@@ -41,7 +41,9 @@ const ReportsAnalytics = () => {
         setIsExporting(true);
         try {
             const token = localStorage.getItem('token');
-            const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5002'}/api/admin/export?type=${reportType}&range=${dateRange}`;
+            const raw = (import.meta.env.VITE_API_URL || 'http://localhost:5002').replace(/\/+$/, '');
+            const baseUrl = raw.endsWith('/api') ? raw : `${raw}/api`;
+            const url = `${baseUrl}/admin/export?type=${reportType}&range=${dateRange}`;
             
             const response = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${token}` }

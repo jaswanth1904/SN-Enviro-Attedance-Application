@@ -3,13 +3,23 @@ const User = require('../models/User');
 const Attendance = require('../models/Attendance');
 const { sendDailyReport } = require('./notifier');
 
+const { autoClosePendingAttendances } = require('./attendanceHelper');
+
 /**
  * Weekly & Daily Automated Scheduler
- * Handles 11:30 AM Daily Report to DM
+ * Handles 11:30 AM Daily Report to DM & 7:00 PM IST Auto-Checkout
  */
 const initScheduler = () => {
-    // Schedule task to run every day at 11:30 AM
-    // Seconds Minute Hour DayOfMonth Month DayOfWeek
+    // Startup sweep: Immediately auto-close any orphaned sessions left open from past days
+    autoClosePendingAttendances()
+        .then(count => {
+            if (count > 0) {
+                console.log(`--- 🧹 STARTUP SWEEP: Auto-closed ${count} orphaned shifts from previous days ---`);
+            }
+        })
+        .catch(err => console.error('--- ❌ STARTUP ATTENDANCE SWEEP ERROR ---', err.message));
+
+    // Schedule task to run every day at 11:30 AM IST
     cron.schedule('30 11 * * *', async () => {
         console.log('--- 📊 GENERATING DAILY ATTENDANCE REPORT ---');
 
@@ -50,50 +60,26 @@ const initScheduler = () => {
         } catch (error) {
             console.error('--- ❌ SCHEDULER ERROR ---', error.message);
         }
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
     });
 
-    // Schedule task to run every day at 7:00 PM (19:00) to auto-checkout active shifts
+    // Schedule task to run every day at 7:00 PM (19:00 IST) to auto-checkout active shifts
     cron.schedule('0 19 * * *', async () => {
-        console.log('--- 🕖 7:00 PM AUTO-CHECKOUT TRIGGERED ---');
+        console.log('--- 🕖 7:00 PM IST AUTO-CHECKOUT TRIGGERED FOR ALL ENGINEERS ---');
         try {
-            // Find all active attendances (no checkOut)
-            const activeAttendances = await Attendance.find({ checkOut: null });
-            const now = new Date();
-            let count = 0;
-
-            for (let record of activeAttendances) {
-                // Ensure it's from today
-                const recordDate = new Date(record.timestamp);
-                if (recordDate.toDateString() === now.toDateString()) {
-                    record.checkOut = now;
-                    
-                    const diffMs = now - recordDate;
-                    const totalHours = diffMs / (1000 * 60 * 60);
-                    record.totalHours = totalHours;
-
-                    // Overtime: anything past 6 PM (18:00)
-                    const pivot = new Date(recordDate);
-                    pivot.setHours(18, 0, 0, 0);
-                    let otHrs = 0;
-                    if (now > pivot) {
-                        const otMs = now - Math.max(recordDate.getTime(), pivot.getTime());
-                        otHrs = otMs / (1000 * 60 * 60);
-                    }
-                    record.overtime = otHrs;
-
-                    await record.save();
-                    count++;
-
-                    // Fire socket event if IO is attached globally (handled inside controller usually, but cron can't easily emit without IO ref)
-                }
-            }
-            console.log(`--- ✅ AUTO-CHECKOUT COMPLETE: ${count} users checked out ---`);
+            const count = await autoClosePendingAttendances();
+            console.log(`--- ✅ AUTO-CHECKOUT COMPLETE: ${count} users successfully checked out at 7:00 PM IST ---`);
         } catch (error) {
             console.error('--- ❌ AUTO-CHECKOUT ERROR ---', error.message);
         }
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
     });
 
-    console.log('⚙️ Scheduler initialized: Reports set for 11:30 AM Daily & Auto-Checkout set for 7:00 PM.');
+    console.log('⚙️ Scheduler initialized: Reports set for 11:30 AM Daily & Auto-Checkout set for 7:00 PM IST.');
 
     // 1st of every month at midnight (0 0 1 * *)
     cron.schedule('0 0 1 * *', async () => {

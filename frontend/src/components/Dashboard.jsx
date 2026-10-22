@@ -106,11 +106,18 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const { coords, city, fullAddress, error: geoError, refresh: refreshGeo, loading: geoLoading } = useGeolocation();
     const [attendance, setAttendance] = useState([]);
-    const isCheckedIn = attendance[0] && !attendance[0].checkOut;
+    
+    // Shift state: strictly isolated to today
+    const latestRecord = attendance[0];
+    const isTodayRecord = latestRecord && new Date(latestRecord.timestamp).toDateString() === new Date().toDateString();
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const isPastSevenPM = currentTime.getHours() >= 19;
+    const isCheckedIn = isTodayRecord && !latestRecord.checkOut && !isPastSevenPM;
+    const isShiftCompletedToday = isTodayRecord && (!!latestRecord.checkOut || isPastSevenPM);
+
     const [loading, setLoading] = useState(false);
     const [checkStatus, setCheckStatus] = useState(null);
     const [statusMessage, setStatusMessage] = useState('');
-    const [currentTime, setCurrentTime] = useState(new Date());
     const [activeTab, setActiveTab] = useState(user?.role === 'Admin' ? 'profile' : 'attendance');
     const [sessionTimer, setSessionTimer] = useState('00:00:00');
     const [currentSessionMetrics, setCurrentSessionMetrics] = useState({ hours: 0, overtime: 0 });
@@ -141,31 +148,73 @@ const Dashboard = () => {
             const now = new Date();
             setCurrentTime(now);
 
-            // Real-time Session Monitoring
+            // Real-time Session Monitoring: Strictly isolated to today
             const latest = attendance[0];
-            if (latest && !latest.checkOut) {
+            const isToday = latest && new Date(latest.timestamp).toDateString() === now.toDateString();
+
+            if (latest && !latest.checkOut && isToday) {
                 const start = new Date(latest.timestamp);
-                const diffMs = now - start;
-                setSessionTimer(formatDuration(diffMs));
+                const sevenPM = new Date(start);
+                sevenPM.setHours(19, 0, 0, 0);
 
-                // Pivot is 18:00 (6 PM) on the day the shift started
-                const pivot = new Date(start);
-                pivot.setHours(18, 0, 0, 0);
+                if (now >= sevenPM) {
+                    // Shift ended at 7:00 PM cutoff
+                    const maxMs = Math.max(0, sevenPM - start);
+                    const formatted = formatDuration(maxMs);
+                    setSessionTimer(formatted);
 
-                let otHrs = 0;
-                const totalHrs = diffMs / (1000 * 60 * 60);
+                    const pivot = new Date(start);
+                    pivot.setHours(18, 0, 0, 0);
+                    let otHrs = 0;
+                    if (sevenPM > pivot) {
+                        const otMs = sevenPM.getTime() - Math.max(start.getTime(), pivot.getTime());
+                        otHrs = otMs / (1000 * 60 * 60);
+                    }
+                    const totalHrs = maxMs / (1000 * 60 * 60);
 
-                if (now > pivot) {
-                    // Overtime calculation: Difference between NOW and (the pivot OR start time, whichever is later)
-                    const otMs = now - Math.max(start.getTime(), pivot.getTime());
-                    otHrs = otMs / (1000 * 60 * 60);
+                    setCurrentSessionMetrics({
+                        hours: totalHrs.toFixed(2),
+                        overtime: otHrs.toFixed(2),
+                        totalTimer: formatted,
+                        otTimer: otHrs > 0 ? formatDuration(sevenPM.getTime() - Math.max(start.getTime(), pivot.getTime())) : '00:00:00'
+                    });
+
+                    fetchAttendance(); // Sync backend auto-checkout
+                } else {
+                    const diffMs = now - start;
+                    setSessionTimer(formatDuration(diffMs));
+
+                    // Pivot is 18:00 (6 PM) on the day the shift started
+                    const pivot = new Date(start);
+                    pivot.setHours(18, 0, 0, 0);
+
+                    let otHrs = 0;
+                    const totalHrs = diffMs / (1000 * 60 * 60);
+
+                    if (now > pivot) {
+                        const otMs = now - Math.max(start.getTime(), pivot.getTime());
+                        otHrs = otMs / (1000 * 60 * 60);
+                    }
+
+                    setCurrentSessionMetrics({
+                        hours: totalHrs.toFixed(2),
+                        overtime: otHrs.toFixed(2),
+                        totalTimer: formatDuration(diffMs),
+                        otTimer: otHrs > 0 ? formatDuration(now - Math.max(start.getTime(), pivot.getTime())) : '00:00:00'
+                    });
                 }
-
+            } else if (latest && latest.checkOut && isToday) {
+                // Today's shift completed: show exact finalized session metrics in Control Panel
+                const start = new Date(latest.timestamp);
+                const end = new Date(latest.checkOut);
+                const durMs = Math.max(0, end - start);
+                const formatted = formatDuration(durMs);
+                setSessionTimer(formatted);
                 setCurrentSessionMetrics({
-                    hours: totalHrs.toFixed(2),
-                    overtime: otHrs.toFixed(2),
-                    totalTimer: formatDuration(diffMs),
-                    otTimer: otHrs > 0 ? formatDuration(now - Math.max(start.getTime(), pivot.getTime())) : '00:00:00'
+                    hours: (latest.totalHours || (durMs / (1000 * 60 * 60))).toFixed(2),
+                    overtime: (latest.overtime || 0).toFixed(2),
+                    totalTimer: formatted,
+                    otTimer: latest.overtime > 0 ? formatDuration(latest.overtime * 3600 * 1000) : '00:00:00'
                 });
             } else {
                 setSessionTimer('00:00:00');
@@ -495,10 +544,14 @@ const Dashboard = () => {
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
                                 
                                 <h3 className="text-3xl font-medium text-slate-800 mb-2 tracking-tight relative z-10 font-serif">
-                                    {isCheckedIn ? 'Shift Active' : 'Ready to Work?'}
+                                    {isCheckedIn ? 'Shift Active' : isShiftCompletedToday ? 'Shift Completed' : 'Ready to Work?'}
                                 </h3>
                                 <p className="text-slate-500 font-light text-sm mb-8 relative z-10">
-                                    {isCheckedIn ? 'You are currently logged in.' : 'Verify your location and login.'}
+                                    {isCheckedIn 
+                                        ? 'You are currently logged in.' 
+                                        : isShiftCompletedToday 
+                                            ? 'Today\'s shift has concluded (7:00 PM Auto-Checkout). Fresh login available tomorrow morning!' 
+                                            : 'Verify your location and login.'}
                                 </p>
 
                                 <div className="w-full bg-slate-50 rounded-[24px] p-6 mb-8 border border-slate-100 flex flex-col items-center relative z-10">
@@ -536,7 +589,39 @@ const Dashboard = () => {
                                     )}
                                 </div>
 
-                                {!isCheckedIn && (
+                                {isCheckedIn && (
+                                    <div className="mb-6 flex flex-col items-center">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Active Session Duration</span>
+                                        <span className="text-3xl font-mono font-bold text-slate-800 tracking-tight">{sessionTimer}</span>
+                                    </div>
+                                )}
+
+                                {isCheckedIn ? (
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => handleCheckAction('out')}
+                                        disabled={checkStatus === 'pending'}
+                                        className="w-full py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-extrabold text-[11px] sm:text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 relative z-10 overflow-hidden bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-[0_8px_30px_rgba(244,63,94,0.3)] border border-rose-400/50 hover:shadow-[0_8px_40px_rgba(244,63,94,0.4)] hover:-translate-y-1 group"
+                                    >
+                                        <div className="relative z-10 flex items-center justify-center gap-3 w-full">
+                                            {checkStatus === 'pending' ? (
+                                                <Loader2 className="animate-spin" size={20} />
+                                            ) : (
+                                                <>
+                                                    <LogOut size={18} strokeWidth={2.5} /> Check Out / End Shift
+                                                </>
+                                            )}
+                                        </div>
+                                    </motion.button>
+                                ) : isShiftCompletedToday ? (
+                                    <div className="w-full py-5 px-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center flex flex-col items-center gap-2 relative z-10 shadow-sm">
+                                        <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm">
+                                            <CheckCircle2 size={18} /> Shift Concluded for Today
+                                        </div>
+                                        <p className="text-xs text-slate-500 font-medium">Auto-checkout completed. Fresh login will open tomorrow morning!</p>
+                                    </div>
+                                ) : (
                                     <motion.button
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}

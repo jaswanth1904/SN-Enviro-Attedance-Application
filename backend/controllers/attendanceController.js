@@ -291,6 +291,11 @@ exports.importAttendance = async (req, res, next) => {
 // @access  Private
 exports.getMyAttendance = async (req, res, next) => {
     try {
+        const { autoClosePendingAttendances } = require('../utils/attendanceHelper');
+
+        // Automatically close any abandoned/past sessions for this user before query
+        await autoClosePendingAttendances({ user: req.user.id }, req.app?.locals?.io);
+
         const attendance = await Attendance.find({ user: req.user.id })
             .sort('-timestamp')
             .limit(50);
@@ -370,22 +375,18 @@ exports.checkOutAttendance = async (req, res, next) => {
             return res.status(400).json({ success: false, error: 'Already checked out for this session' });
         }
 
+        const { calculateShiftMetrics, getIST7PM } = require('../utils/attendanceHelper');
+
         const checkInTime = new Date(attendance.timestamp);
-        const checkOutTime = new Date();
-        const diffMs = checkOutTime - checkInTime;
-        const totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+        let checkOutTime = new Date();
 
-        // OT logic: Activity after 6:00 PM (18:00)
-        const sixPM = new Date(checkOutTime);
-        sixPM.setHours(18, 0, 0, 0);
-
-        let overtime = 0;
-        if (checkOutTime > sixPM) {
-            // Calculate time worked after 6 PM
-            const startForOT = checkInTime > sixPM ? checkInTime : sixPM;
-            const otMs = checkOutTime - startForOT;
-            overtime = parseFloat((otMs / (1000 * 60 * 60)).toFixed(2));
+        // If checking out past 7:00 PM IST on shift day or on a subsequent day, cap at 7:00 PM IST of that shift
+        const cutoff7PM = getIST7PM(checkInTime);
+        if (checkOutTime > cutoff7PM && checkInTime < cutoff7PM) {
+            checkOutTime = cutoff7PM;
         }
+
+        const { totalHours, overtime } = calculateShiftMetrics(checkInTime, checkOutTime);
 
         attendance = await Attendance.findByIdAndUpdate(
             req.params.id,
@@ -401,7 +402,7 @@ exports.checkOutAttendance = async (req, res, next) => {
         ).populate('user', 'name email role').populate('site', 'name');
 
         // Real-time Push to Dashboard
-        if (req.app.locals.io) {
+        if (req.app?.locals?.io) {
             req.app.locals.io.emit('attendance_logged', attendance);
         }
 
