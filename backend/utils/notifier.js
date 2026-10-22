@@ -13,8 +13,8 @@ const sendOfficerNotification = async (userData, siteData, attendanceData) => {
         console.log(`NOTIFICATION: ${message}`);
         console.log('=================================');
 
-        const authUser = process.env.SMTP_EMAIL || process.env.EMAIL_USER;
-        const authPass = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS;
+        const authUser = process.env.SMTP_EMAIL || process.env.EMAIL_USER || 'attendance@snenviro.in';
+        const authPass = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS || 'qmti stui jjqb gbid';
         const fromEmail = process.env.FROM_EMAIL || 'attendance@snenviro.in';
         const fromName = process.env.FROM_NAME || 'SN Enviro Attendance Pvt Ltd';
 
@@ -63,8 +63,8 @@ const sendDailyReport = async (presentUsers, absentUsers) => {
         const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         const subject = `📋 Daily Attendance Report: ${today}`;
 
-        const authUser = process.env.SMTP_EMAIL || process.env.EMAIL_USER;
-        const authPass = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS;
+        const authUser = process.env.SMTP_EMAIL || process.env.EMAIL_USER || 'attendance@snenviro.in';
+        const authPass = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS || 'qmti stui jjqb gbid';
         const fromEmail = process.env.FROM_EMAIL || 'attendance@snenviro.in';
         const fromName = process.env.FROM_NAME || 'SN Enviro Attendance Pvt Ltd';
 

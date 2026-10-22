@@ -6,10 +6,11 @@ import axios from 'axios';
  * it automatically uses the browser's current origin + '/api' to ensure client calls always reach the server.
  */
 export const getBaseApiUrl = () => {
+    const defaultProdApi = 'https://sn-enviro-attedance-application.onrender.com/api';
     if (typeof window !== 'undefined' && window.location && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
         const envUrl = import.meta.env.VITE_API_URL;
         if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
-            return `${window.location.origin}/api`;
+            return defaultProdApi;
         }
         const cleaned = envUrl.replace(/\/+$/, '');
         return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
