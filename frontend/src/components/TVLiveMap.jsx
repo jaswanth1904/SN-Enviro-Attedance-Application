@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Clock, Activity, Sun, Moon } from 'lucide-react';
 import { io } from 'socket.io-client';
-import api from './api';
+import api, { getSocketUrl } from './api';
 
 const authorizedPlants = [
     { name: "SN Enviro Head Office (Hyderabad)", lat: 17.4334, lng: 78.4357 },
@@ -208,9 +208,7 @@ const TVLiveMap = () => {
 
         fetchInitialData();
 
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5002';
-        const socketUrl = apiUrl.replace(/\/api$/, '');
-        const socket = io(socketUrl);
+        const socket = io(getSocketUrl());
         socket.on('attendance_logged', (newLog) => {
             if (newLog.checkOut) {
                 setEngineers(prev => prev.filter(e => e.name !== newLog.user.name));

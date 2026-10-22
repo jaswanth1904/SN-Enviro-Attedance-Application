@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { getBaseApiUrl } from './api';
 
 const AuthContext = createContext();
 
@@ -34,10 +35,7 @@ export const AuthProvider = ({ children }) => {
         return () => axios.interceptors.response.eject(interceptor);
     }, []);
 
-    const getApiUrl = () => {
-        const raw = (import.meta.env.VITE_API_URL || 'http://localhost:5002').replace(/\/+$/, '');
-        return raw.endsWith('/api') ? raw : `${raw}/api`;
-    };
+    const getApiUrl = () => getBaseApiUrl();
 
     const login = async (email, password) => {
         try {

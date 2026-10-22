@@ -9,9 +9,9 @@ const { autoClosePendingAttendances } = require('./attendanceHelper');
  * Weekly & Daily Automated Scheduler
  * Handles 11:30 AM Daily Report to DM & 7:00 PM IST Auto-Checkout
  */
-const initScheduler = () => {
+const initScheduler = (app = null) => {
     // Startup sweep: Immediately auto-close any orphaned sessions left open from past days
-    autoClosePendingAttendances()
+    autoClosePendingAttendances({}, app?.locals?.io)
         .then(count => {
             if (count > 0) {
                 console.log(`--- 🧹 STARTUP SWEEP: Auto-closed ${count} orphaned shifts from previous days ---`);
@@ -69,7 +69,7 @@ const initScheduler = () => {
     cron.schedule('0 19 * * *', async () => {
         console.log('--- 🕖 7:00 PM IST AUTO-CHECKOUT TRIGGERED FOR ALL ENGINEERS ---');
         try {
-            const count = await autoClosePendingAttendances();
+            const count = await autoClosePendingAttendances({}, app?.locals?.io);
             console.log(`--- ✅ AUTO-CHECKOUT COMPLETE: ${count} users successfully checked out at 7:00 PM IST ---`);
         } catch (error) {
             console.error('--- ❌ AUTO-CHECKOUT ERROR ---', error.message);

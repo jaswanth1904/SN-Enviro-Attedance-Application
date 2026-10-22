@@ -5,7 +5,7 @@ import { Users, Filter, Clock, AlertTriangle } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import api from '../api';
+import api, { getSocketUrl } from '../api';
 import { io } from 'socket.io-client';
 
 const MapRefresher = () => {
@@ -56,7 +56,7 @@ const LiveTrackingMap = () => {
     fetchLive();
 
     // Establish WebSocket Connection
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5002');
+    const socket = io(getSocketUrl());
     
     socket.on('attendance_logged', (newAtt) => {
       const time = new Date(newAtt.timestamp);

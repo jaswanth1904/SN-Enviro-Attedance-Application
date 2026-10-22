@@ -7,7 +7,7 @@ import {
     CheckCircle2, AlertCircle, Clock, TrendingUp, ShieldCheck, 
     Mail, MapPin, Calendar, Activity, Laptop, Loader2, Globe, LayoutDashboard, Zap, XCircle
 } from 'lucide-react';
-import api from './api';
+import api, { getSocketUrl } from './api';
 import { useAuth } from './AuthContext';
 import { io } from 'socket.io-client';
 import { 
@@ -62,10 +62,7 @@ const AdminDashboard = () => {
         const timeInterval = setInterval(() => setCurrentTime(new Date()), 1000);
 
         // Real-Time Socket.IO Integration
-        const raw = (import.meta.env.VITE_API_URL || 'http://localhost:5002').replace(/\/+$/, '');
-        const apiUrl = raw.endsWith('/api') ? raw : `${raw}/api`;
-        const socketUrl = apiUrl.replace(/\/api$/, '');
-        const socket = io(socketUrl);
+        const socket = io(getSocketUrl());
 
         socket.on('connect', () => {
             console.log('Connected to Real-Time Data Stream');

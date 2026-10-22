@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Download, FileSpreadsheet, CalendarDays, TrendingUp, Users, Clock } from 'lucide-react';
-import api from '../api';
+import api, { getBaseApiUrl } from '../api';
 
 const ReportsAnalytics = () => {
     const [reportType, setReportType] = useState('attendance');
@@ -40,10 +40,7 @@ const ReportsAnalytics = () => {
     const handleExport = async () => {
         setIsExporting(true);
         try {
-            const token = localStorage.getItem('token');
-            const raw = (import.meta.env.VITE_API_URL || 'http://localhost:5002').replace(/\/+$/, '');
-            const baseUrl = raw.endsWith('/api') ? raw : `${raw}/api`;
-            const url = `${baseUrl}/admin/export?type=${reportType}&range=${dateRange}`;
+            const url = `${getBaseApiUrl()}/admin/export?type=${reportType}&range=${dateRange}`;
             
             const response = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${token}` }

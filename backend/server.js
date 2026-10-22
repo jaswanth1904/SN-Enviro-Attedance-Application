@@ -136,9 +136,6 @@ Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 if (process.env.NODE_ENV !== 'test') {
-    // Start automated background tasks
-    initScheduler();
-    
     // Initialize Escalation Cron Job
     require('./cron/escalationJob');
 
@@ -164,8 +161,11 @@ if (process.env.NODE_ENV !== 'test') {
         });
     });
 
-    // Expose io object globally for controllers to broadcast events
+    // Expose io object globally for controllers and schedulers to broadcast events
     app.locals.io = io;
+
+    // Start automated background tasks with real-time socket broadcaster
+    initScheduler(app);
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (err, promise) => {

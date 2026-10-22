@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, AlertCircle, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
-import api from './api';
+import api, { getSocketUrl } from './api';
 import { io } from 'socket.io-client';
 
 const LeaveHub = () => {
@@ -13,10 +13,7 @@ const LeaveHub = () => {
     useEffect(() => {
         fetchLeaves();
 
-        const raw = (import.meta.env.VITE_API_URL || 'http://localhost:5002').replace(/\/+$/, '');
-        const apiUrl = raw.endsWith('/api') ? raw : `${raw}/api`;
-        const socketUrl = apiUrl.replace(/\/api$/, '');
-        const socket = io(socketUrl);
+        const socket = io(getSocketUrl());
 
         socket.on('leave_status_updated', (updatedLeave) => {
             setLeaves(prev => {

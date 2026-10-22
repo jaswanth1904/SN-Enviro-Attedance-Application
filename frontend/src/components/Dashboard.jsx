@@ -10,7 +10,8 @@ import {
 import { useAuth } from './AuthContext';
 import { useGeolocation } from './useGeolocation';
 import confetti from 'canvas-confetti';
-import api from './api';
+import api, { getSocketUrl } from './api';
+import { io } from 'socket.io-client';
 import LeaveHub from './LeaveHub';
 import SalaryHub from './SalaryHub';
 import ProfileCard from './ProfileCard';
@@ -245,7 +246,31 @@ const Dashboard = () => {
 
     useEffect(() => {
         fetchAttendance();
-    }, []);
+
+        // Real-Time Socket Connection for immediate attendance synchronization
+        const socket = io(getSocketUrl());
+
+        socket.on('attendance_logged', (loggedRecord) => {
+            const currentUserId = user?._id || user?.id;
+            const recordUserId = loggedRecord?.user?._id || loggedRecord?.user?.id || loggedRecord?.user;
+
+            if (currentUserId && recordUserId && currentUserId.toString() === recordUserId.toString()) {
+                setAttendance(prev => {
+                    const idx = prev.findIndex(r => r._id === loggedRecord._id);
+                    if (idx !== -1) {
+                        const updated = [...prev];
+                        updated[idx] = loggedRecord;
+                        return updated;
+                    }
+                    return [loggedRecord, ...prev];
+                });
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user]);
 
     const fetchAttendance = async () => {
         // Don't set loading on BG syncs to avoid flickering
