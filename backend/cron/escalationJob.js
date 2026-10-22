@@ -5,8 +5,8 @@ const Explanation = require('../models/Explanation');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
-// Daily at 10:45 AM
-cron.schedule('45 10 * * *', async () => {
+// Daily at 10:30 AM
+cron.schedule('30 10 * * *', async () => {
     console.log(`\x1b[36m%s\x1b[0m`, `[Cron] Running Escalation Check for Late Logins...`);
     try {
         const startOfDay = new Date();
@@ -14,27 +14,28 @@ cron.schedule('45 10 * * *', async () => {
         const endOfDay = new Date();
         endOfDay.setHours(23, 59, 59, 999);
 
-        // Find all active Service Engineers
-        const engineers = await User.find({ role: 'Service Engineer' });
+        // Find all non-Admin employees
+        const employees = await User.find({ role: { $ne: 'Admin' } });
 
-        for (const user of engineers) {
+        for (const user of employees) {
             const attendance = await Attendance.findOne({
                 user: user._id,
                 timestamp: { $gte: startOfDay, $lte: endOfDay }
             });
 
-            // If no attendance, or logged in after 10:45 AM
+            // If no attendance, or logged in after 10:30 AM
             let needsEscalation = false;
             let reasonCode = '';
 
             if (!attendance) {
                 needsEscalation = true;
-                reasonCode = 'No Login Detected';
+                reasonCode = 'No Login Detected by 10:30 AM';
             } else {
                 const loginTime = new Date(attendance.timestamp);
-                if (loginTime.getHours() > 10 || (loginTime.getHours() === 10 && loginTime.getMinutes() >= 45)) {
+                const istTime = new Date(loginTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+                if (istTime.getHours() > 10 || (istTime.getHours() === 10 && istTime.getMinutes() >= 30)) {
                     needsEscalation = true;
-                    reasonCode = 'Late Login (After 10:45 AM)';
+                    reasonCode = 'Late Login (After 10:30 AM)';
                 }
             }
 
