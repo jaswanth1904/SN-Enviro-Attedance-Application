@@ -36,23 +36,23 @@ const Navbar = ({ onAuthClick }) => {
     };
 
     return (
-        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 border-b border-slate-200/80 h-16 shadow-sm backdrop-blur-md' : 'bg-white/90 border-b border-slate-100 h-16 sm:h-20 backdrop-blur-md'}`}>
-            <nav className="h-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 border-b border-md-outline/10 h-16 shadow-md' : 'bg-transparent h-24'}`}>
+            <nav className="h-full max-w-7xl mx-auto px-6 flex items-center justify-between">
                 {/* Logo Section */}
-                <Link to={user && user.role === 'Admin' ? '/admin' : '/'} className="flex items-center gap-2 group" onClick={closeAll}>
-                    <span className="text-xl sm:text-2xl font-black text-[#22223b] tracking-tight" style={{ fontFamily: 'var(--font-serif, "Playfair Display", serif)' }}>
-                        SN Enviro<span className="text-blue-600">.</span>
-                    </span>
+                <Link to={user && user.role === 'Admin' ? '/admin' : '/'} className="flex items-center gap-3 group" onClick={closeAll}>
+                    <div className="flex flex-col">
+                        <span className="text-2xl font-bold text-[#22223b]" style={{ fontFamily: 'var(--font-serif, "Playfair Display", serif)' }}>SN Enviro.</span>
+                    </div>
                 </Link>
 
                 {/* Actions Section */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                     {!user ? (
                         <button
                             onClick={() => onAuthClick('login')}
-                            className="px-5 py-2 rounded-full bg-blue-600 text-white text-xs sm:text-sm font-bold shadow-md shadow-blue-500/20 hover:bg-blue-700 transition-all"
+                            className="text-sm font-bold text-slate-700 hover:text-black transition-colors"
                         >
-                            Sign In
+                            Login / Sign Up
                         </button>
                     ) : (
                         <>
