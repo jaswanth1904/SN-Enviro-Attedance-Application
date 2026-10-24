@@ -269,10 +269,16 @@ exports.resetPassword = async (req, res, next) => {
     try {
         const { password } = req.body;
 
-        if (!password || password.length < 6) {
+        // Strict password complexity: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+        const hasUpper = /[A-Z]/.test(password || '');
+        const hasLower = /[a-z]/.test(password || '');
+        const hasNumber = /[0-9]/.test(password || '');
+        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password || '');
+
+        if (!password || password.length < 8 || !hasUpper || !hasLower || !hasNumber || !hasSpecial) {
             return res.status(400).json({
                 success: false,
-                error: 'Please provide a password with at least 6 characters'
+                error: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
             });
         }
 
@@ -285,12 +291,21 @@ exports.resetPassword = async (req, res, next) => {
         const user = await User.findOne({
             resetPasswordToken,
             resetPasswordExpire: { $gt: Date.now() }
-        });
+        }).select('+password');
 
         if (!user) {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid or expired password reset link. Please request a new one.'
+            });
+        }
+
+        // Prevent reusing same old password
+        const isSamePassword = await user.matchPassword(password);
+        if (isSamePassword) {
+            return res.status(400).json({
+                success: false,
+                error: 'New password cannot be the same as your old password. Please create a new password.'
             });
         }
 

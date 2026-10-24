@@ -199,8 +199,16 @@ const LeaveHub = () => {
                                         <p className="text-sm text-md-on-surface-variant font-medium leading-relaxed italic pr-4">
                                             "{leave.reason}"
                                         </p>
-                                        {leave.rejectionReason && (
-                                            <div className="mt-5 p-5 bg-md-error/5 border border-md-error/10 rounded-2xl text-[11px] text-md-error font-bold uppercase tracking-wide">
+                                        {leave.adminRemarks && (
+                                            <div className={`mt-4 p-4 rounded-2xl border text-xs leading-relaxed ${leave.status === 'Approved' ? 'bg-emerald-50/80 border-emerald-200/60 text-emerald-900' : 'bg-rose-50/80 border-rose-200/60 text-rose-900'}`}>
+                                                <span className="font-bold uppercase tracking-wider text-[10px] block opacity-70 mb-1">
+                                                    {leave.status === 'Approved' ? 'MD Note / Approval Instruction:' : 'MD Note:'}
+                                                </span>
+                                                <p className="font-medium italic">"{leave.adminRemarks}"</p>
+                                            </div>
+                                        )}
+                                        {!leave.adminRemarks && leave.rejectionReason && (
+                                            <div className="mt-4 p-4 bg-md-error/5 border border-md-error/10 rounded-2xl text-[11px] text-md-error font-bold uppercase tracking-wide">
                                                 <span className="text-md-error/60 block mb-1">HQ RESPONSE:</span>
                                                 {leave.rejectionReason}
                                             </div>

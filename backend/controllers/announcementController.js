@@ -62,7 +62,7 @@ exports.createAnnouncement = async (req, res) => {
                                         <p style="color: #475569; font-size: 16px;"><strong>MD has announced:</strong></p>
                                         <p style="color: #334155; font-size: 15px; line-height: 1.6; background-color: #f8fafc; padding: 15px; border-left: 4px solid #3b82f6;">${message.replace(/\n/g, '<br>')}</p>
                                         <p style="color: #475569; font-size: 16px; margin-top: 20px;">Open and see the details in the portal!</p>
-                                        <a href="http://localhost:5173/" style="display: inline-block; padding: 10px 20px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">Login to Portal</a>
+                                        <a href="${process.env.CLIENT_URL || 'http://localhost:5174'}/" style="display: inline-block; padding: 10px 20px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">Login to Portal</a>
                                         <hr style="margin-top: 30px; border: none; border-top: 1px solid #e2e8f0;">
                                         <small style="color: #94a3b8;">This is an automated announcement from SN Enviro System.</small>
                                     </div>`

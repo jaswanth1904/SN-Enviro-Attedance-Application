@@ -15,11 +15,7 @@ const Notifications = () => {
             }
         } catch (err) {
             console.error('Failed to fetch notifications:', err);
-            // Mock data fallback
-            setNotifications([
-                { _id: '1', title: 'System Maintenance', message: 'The portal will be down for 10 minutes at midnight.', type: 'System', isRead: false, createdAt: new Date().toISOString() },
-                { _id: '2', title: 'New Leave Request', message: 'Rahul Sharma has requested leave for tomorrow.', type: 'Important Alert', isRead: true, createdAt: new Date(Date.now() - 3600000).toISOString() },
-            ]);
+            setNotifications([]);
         } finally {
             setLoading(false);
         }

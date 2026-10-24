@@ -11,26 +11,26 @@ const DepartmentsSites = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch Sites
-                const sitesRes = await api.get('/sites').catch(() => ({ data: { success: false } }));
-                if (sitesRes.data && sitesRes.data.success) {
+                // Fetch Real Sites from MongoDB
+                const sitesRes = await api.get('/sites').catch(() => ({ data: { success: false, data: [] } }));
+                if (sitesRes.data && sitesRes.data.success && Array.isArray(sitesRes.data.data)) {
                     setSites(sitesRes.data.data);
                 } else {
-                    setSites([
-                        { _id: '1', name: 'Mumbai HQ', radius: 200, location: { address: 'Bandra, Mumbai' } },
-                        { _id: '2', name: 'Ahmedabad Plant', radius: 500, location: { address: 'Sanand, Ahmedabad' } }
-                    ]);
+                    setSites([]);
                 }
 
-                // Mock Departments since we don't have an endpoint for it yet
-                setDepartments([
-                    { _id: '1', name: 'Engineering', description: 'Core application and systems engineering.' },
-                    { _id: '2', name: 'Field Operations', description: 'On-site service technicians and managers.' },
-                    { _id: '3', name: 'HR & Admin', description: 'Human resources and administrative staff.' }
-                ]);
+                // Fetch Real Departments from MongoDB
+                const deptRes = await api.get('/departments').catch(() => ({ data: { success: false, data: [] } }));
+                if (deptRes.data && deptRes.data.success && Array.isArray(deptRes.data.data)) {
+                    setDepartments(deptRes.data.data);
+                } else {
+                    setDepartments([]);
+                }
 
             } catch (err) {
-                console.error(err);
+                console.error('Error fetching sites/departments:', err);
+                setSites([]);
+                setDepartments([]);
             } finally {
                 setLoading(false);
             }
@@ -61,6 +61,8 @@ const DepartmentsSites = () => {
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-100">
                         {loading ? (
                             <div className="p-6 text-center text-slate-400 font-bold">Loading...</div>
+                        ) : departments.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 font-bold text-sm">No departments configured yet. Click "Add Dept" to add one.</div>
                         ) : departments.map((dept, idx) => (
                             <motion.div 
                                 initial={{ opacity: 0, x: -20 }}
@@ -100,6 +102,8 @@ const DepartmentsSites = () => {
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-100">
                         {loading ? (
                             <div className="p-6 text-center text-slate-400 font-bold">Loading...</div>
+                        ) : sites.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 font-bold text-sm">No geo-fenced sites configured yet. Click "Add Site" to register field coordinates.</div>
                         ) : sites.map((site, idx) => (
                             <motion.div 
                                 initial={{ opacity: 0, x: 20 }}

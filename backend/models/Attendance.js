@@ -46,6 +46,10 @@ const attendanceSchema = new mongoose.Schema({
     checkOut: {
         type: Date
     },
+    dateStr: {
+        type: String,
+        index: true
+    },
     totalHours: {
         type: Number,
         default: 0
@@ -58,5 +62,6 @@ const attendanceSchema = new mongoose.Schema({
 
 // Index for geo queries and reporting
 attendanceSchema.index({ timestamp: -1, user: 1 });
+attendanceSchema.index({ user: 1, dateStr: 1 }, { unique: true, partialFilterExpression: { dateStr: { $type: "string" } } });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

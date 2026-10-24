@@ -115,28 +115,8 @@ const AdminDashboard = () => {
             const attRes = await api.get('/attendance/reports');
             let data = attRes.data.data || [];
             
-            // Premium Mock Data Injection for Presentation (Force append to show full potential)
-            const now = new Date();
-            const mockData = [
-                { _id: 'mock_1', user: { name: 'Rahul Sharma', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), locationName: 'Mumbai Site A', location: { coordinates: [72.8777, 19.0760] }, status: 'Present' },
-                { _id: 'mock_2', user: { name: 'Priya Patel', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(), locationName: 'Ahmedabad Plant', location: { coordinates: [72.5714, 23.0225] }, status: 'Present' },
-                { _id: 'mock_3', user: { name: 'Amit Singh', role: 'Application Engineer' }, timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(), locationName: 'Delhi HQ', location: { coordinates: [77.1025, 28.7041] }, status: 'Present' },
-                { _id: 'mock_4', user: { name: 'Kavita Reddy', role: 'Office Staff' }, timestamp: new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString(), locationName: 'Hyderabad Office', location: { coordinates: [78.4867, 17.3850] }, status: 'Present' },
-                { _id: 'mock_5', user: { name: 'Sanjay Kumar', role: 'Application Engineer' }, timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(), locationName: 'Bengaluru R&D', location: { coordinates: [77.5946, 12.9716] }, status: 'Present' },
-                { _id: 'mock_6', user: { name: 'Vikram Singh', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), locationName: 'Pune Manufacturing', location: { coordinates: [73.8567, 18.5204] }, status: 'Present' },
-                { _id: 'mock_7', user: { name: 'Ananya Desai', role: 'Application Engineer' }, timestamp: new Date(now.getTime() - 0.5 * 60 * 60 * 1000).toISOString(), locationName: 'Chennai Hub', location: { coordinates: [80.2707, 13.0827] }, status: 'Present' },
-                { _id: 'mock_8', user: { name: 'Rohan Gupta', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 2.5 * 60 * 60 * 1000).toISOString(), locationName: 'Kolkata Facility', location: { coordinates: [88.3639, 22.5726] }, status: 'Present' },
-                { _id: 'mock_9', user: { name: 'Neha Verma', role: 'Office Staff' }, timestamp: new Date(now.getTime() - 7 * 60 * 60 * 1000).toISOString(), locationName: 'Jaipur Office', location: { coordinates: [75.7873, 26.9124] }, status: 'Present' },
-                { _id: 'mock_10', user: { name: 'Arjun Nair', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 1.5 * 60 * 60 * 1000).toISOString(), locationName: 'Kochi Port Site', location: { coordinates: [76.2673, 9.9312] }, status: 'Present' },
-                { _id: 'mock_11', user: { name: 'Aisha Khan', role: 'Application Engineer' }, timestamp: new Date(now.getTime() - 3.5 * 60 * 60 * 1000).toISOString(), locationName: 'Lucknow Center', location: { coordinates: [80.9462, 26.8467] }, status: 'Present' },
-                { _id: 'mock_12', user: { name: 'Manoj Tiwari', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(), locationName: 'Indore Plant', location: { coordinates: [75.8577, 22.7196] }, status: 'Present' },
-                { _id: 'mock_13', user: { name: 'Divya Iyer', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 4.5 * 60 * 60 * 1000).toISOString(), locationName: 'Bhopal Site', location: { coordinates: [77.4126, 23.2599] }, status: 'Present' },
-                { _id: 'mock_14', user: { name: 'Karan Malhotra', role: 'Application Engineer' }, timestamp: new Date(now.getTime() - 1.2 * 60 * 60 * 1000).toISOString(), locationName: 'Chandigarh Hub', location: { coordinates: [76.7794, 30.7333] }, status: 'Present' },
-                { _id: 'mock_15', user: { name: 'Sunil Das', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 6.5 * 60 * 60 * 1000).toISOString(), locationName: 'Guwahati Outpost', location: { coordinates: [91.7362, 26.1445] }, status: 'Present' }
-            ];
-            
-            // Append mock data to real data to ensure the dashboard is always populated
-            setAllAttendance([...data, ...mockData]);
+            // 100% Real-Time Telemetry from MongoDB (Zero Mock Data)
+            setAllAttendance(data);
 
             // Fetch Escalations
             try {

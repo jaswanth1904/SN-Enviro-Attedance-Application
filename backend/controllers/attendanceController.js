@@ -8,6 +8,7 @@ const triggerLateCheckInEscalation = async (user, attendance) => {
         if (!user || !user.email) return;
 
         const checkInDate = new Date(attendance.timestamp || Date.now());
+        const istDateStr = checkInDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         const istDate = new Date(checkInDate.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
         const istHours = istDate.getHours();
         const istMinutes = istDate.getMinutes();
@@ -19,10 +20,8 @@ const triggerLateCheckInEscalation = async (user, attendance) => {
         const crypto = require('crypto');
         const sendEmail = require('../utils/sendEmail');
 
-        const startOfDay = new Date(checkInDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(checkInDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
+        const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
 
         const existingExp = await Explanation.findOne({
             user: user._id || user.id,
@@ -73,20 +72,16 @@ const triggerLateCheckInEscalation = async (user, attendance) => {
 exports.recordAttendance = async (req, res, next) => {
     try {
         const { siteId, latitude, longitude, selfieUrl, locationName, timestamp, onlyReverse } = req.body;
+        if (latitude === undefined || longitude === undefined || latitude === null || longitude === null || isNaN(Number(latitude)) || isNaN(Number(longitude))) {
+            return res.status(400).json({
+                success: false,
+                error: 'Valid latitude and longitude coordinates are required for attendance verification.'
+            });
+        }
         const { reverseGeocode, verifyPlantGeofence } = require('../utils/geo');
 
         // Run the strict 1000m Geofence check
         const geofence = verifyPlantGeofence(latitude, longitude);
-
-        // Geofence enforcement REMOVED as requested for WFH/remote access
-        /*
-        if (!geofence.isAuthorized) {
-            return res.status(403).json({ 
-                success: false, 
-                error: `Attendance Blocked: You are ${Math.round(geofence.distanceMeters)} meters away from the nearest plant. You must be within 1000 meters (1.0 km) to punch in.` 
-            });
-        }
-        */
 
         let actualLocationName;
         if (geofence.isAuthorized) {
@@ -122,7 +117,80 @@ exports.recordAttendance = async (req, res, next) => {
             attendanceData.locationName = actualLocationName;
         }
 
-        const attendance = await Attendance.create(attendanceData);
+        // Concurrency & Duplicate Check-In Guard (Idempotency under high load)
+        const checkInTime = new Date(timestamp || Date.now());
+        const istDateStr = checkInTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
+        const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
+
+        // Active Approved Leave Guard (Blocks punches during authorized leaves)
+        const Leave = require('../models/Leave');
+        const activeApprovedLeave = await Leave.findOne({
+            user: req.user.id,
+            status: 'Approved',
+            startDate: { $lte: endOfDay },
+            endDate: { $gte: startOfDay }
+        });
+
+        if (activeApprovedLeave) {
+            const formattedStart = new Date(activeApprovedLeave.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
+            const formattedEnd = new Date(activeApprovedLeave.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
+            const remarkText = activeApprovedLeave.adminRemarks ? ` MD Note: "${activeApprovedLeave.adminRemarks}".` : '';
+            return res.status(403).json({
+                success: false,
+                isLeaveLocked: true,
+                error: `Attendance Locked: You are on approved ${activeApprovedLeave.leaveType} (${formattedStart} to ${formattedEnd}).${remarkText} Check-in is disabled during approved leave periods.`
+            });
+        }
+
+        const existingShift = await Attendance.findOne({
+            user: req.user.id,
+            timestamp: { $gte: startOfDay, $lte: endOfDay }
+        }).sort({ timestamp: -1 });
+
+        if (existingShift) {
+            if (!existingShift.checkOut) {
+                return res.status(200).json({
+                    success: true,
+                    data: existingShift,
+                    message: 'Active shift already in progress for today.'
+                });
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    error: "Today's shift has already been concluded. Fresh login will open tomorrow morning."
+                });
+            }
+        }
+
+        attendanceData.dateStr = istDateStr;
+
+        let attendance;
+        try {
+            attendance = await Attendance.create(attendanceData);
+        } catch (createErr) {
+            if (createErr.code === 11000) {
+                const collisionRecord = await Attendance.findOne({
+                    user: req.user.id,
+                    timestamp: { $gte: startOfDay, $lte: endOfDay }
+                }).sort({ timestamp: -1 });
+                if (collisionRecord) {
+                    if (!collisionRecord.checkOut) {
+                        return res.status(200).json({
+                            success: true,
+                            data: collisionRecord,
+                            message: 'Active shift already in progress for today.'
+                        });
+                    } else {
+                        return res.status(400).json({
+                            success: false,
+                            error: "Today's shift has already been concluded. Fresh login will open tomorrow morning."
+                        });
+                    }
+                }
+            }
+            throw createErr;
+        }
 
         // Notify
         await sendOfficerNotification(req.user, req.site || { name: attendanceData.locationName }, attendance);
@@ -160,20 +228,16 @@ exports.recordImmediateAttendance = async (req, res, next) => {
         }
 
         const { siteId, latitude, longitude, locationName, timestamp } = req.body;
+        if (latitude === undefined || longitude === undefined || latitude === null || longitude === null || isNaN(Number(latitude)) || isNaN(Number(longitude))) {
+            return res.status(400).json({
+                success: false,
+                error: 'Valid latitude and longitude coordinates are required for attendance verification.'
+            });
+        }
         const { verifyPlantGeofence } = require('../utils/geo');
 
         // Run the strict 1000m Geofence check
         const geofence = verifyPlantGeofence(latitude, longitude);
-
-        // Geofence enforcement REMOVED as requested for WFH/remote access
-        /*
-        if (!geofence.isAuthorized) {
-            return res.status(403).json({ 
-                success: false, 
-                error: `Attendance Blocked: You are ${Math.round(geofence.distanceMeters)} meters away from the nearest plant. You must be within 1000 meters (1.0 km) to punch in.` 
-            });
-        }
-        */
 
         let actualLocationName;
         if (geofence.isAuthorized) {
@@ -206,7 +270,80 @@ exports.recordImmediateAttendance = async (req, res, next) => {
             attendanceData.locationName = actualLocationName;
         }
 
-        const attendance = await Attendance.create(attendanceData);
+        // Concurrency & Duplicate Check-In Guard (Idempotency under high load)
+        const checkInTime = new Date(timestamp || Date.now());
+        const istDateStr = checkInTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
+        const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
+
+        // Active Approved Leave Guard (Blocks punches during authorized leaves)
+        const Leave = require('../models/Leave');
+        const activeApprovedLeave = await Leave.findOne({
+            user: req.user.id,
+            status: 'Approved',
+            startDate: { $lte: endOfDay },
+            endDate: { $gte: startOfDay }
+        });
+
+        if (activeApprovedLeave) {
+            const formattedStart = new Date(activeApprovedLeave.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
+            const formattedEnd = new Date(activeApprovedLeave.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
+            const remarkText = activeApprovedLeave.adminRemarks ? ` MD Note: "${activeApprovedLeave.adminRemarks}".` : '';
+            return res.status(403).json({
+                success: false,
+                isLeaveLocked: true,
+                error: `Attendance Locked: You are on approved ${activeApprovedLeave.leaveType} (${formattedStart} to ${formattedEnd}).${remarkText} Check-in is disabled during approved leave periods.`
+            });
+        }
+
+        const existingShift = await Attendance.findOne({
+            user: req.user.id,
+            timestamp: { $gte: startOfDay, $lte: endOfDay }
+        }).sort({ timestamp: -1 });
+
+        if (existingShift) {
+            if (!existingShift.checkOut) {
+                return res.status(200).json({
+                    success: true,
+                    data: existingShift,
+                    message: 'Active shift already in progress for today.'
+                });
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    error: "Today's shift has already been concluded. Fresh login will open tomorrow morning."
+                });
+            }
+        }
+
+        attendanceData.dateStr = istDateStr;
+
+        let attendance;
+        try {
+            attendance = await Attendance.create(attendanceData);
+        } catch (createErr) {
+            if (createErr.code === 11000) {
+                const collisionRecord = await Attendance.findOne({
+                    user: req.user.id,
+                    timestamp: { $gte: startOfDay, $lte: endOfDay }
+                }).sort({ timestamp: -1 });
+                if (collisionRecord) {
+                    if (!collisionRecord.checkOut) {
+                        return res.status(200).json({
+                            success: true,
+                            data: collisionRecord,
+                            message: 'Active shift already in progress for today.'
+                        });
+                    } else {
+                        return res.status(400).json({
+                            success: false,
+                            error: "Today's shift has already been concluded. Fresh login will open tomorrow morning."
+                        });
+                    }
+                }
+            }
+            throw createErr;
+        }
 
         // Proactive step: Trigger notification
         await sendOfficerNotification(req.user, req.site || { name: attendanceData.locationName }, attendance);
@@ -459,27 +596,31 @@ exports.checkOutAttendance = async (req, res, next) => {
 
         const { totalHours, overtime } = calculateShiftMetrics(checkInTime, checkOutTime);
 
-        attendance = await Attendance.findByIdAndUpdate(
-            req.params.id,
+        // Atomic CAS (Compare-And-Swap): Updates ONLY if checkOut is still null in DB
+        const updatedAttendance = await Attendance.findOneAndUpdate(
+            { _id: req.params.id, checkOut: null },
             {
-                checkOut: checkOutTime,
-                totalHours: totalHours,
-                overtime: overtime
+                $set: {
+                    checkOut: checkOutTime,
+                    totalHours: totalHours,
+                    overtime: overtime
+                }
             },
-            {
-                new: true,
-                runValidators: true
-            }
+            { new: true, runValidators: true }
         ).populate('user', 'name email role').populate('site', 'name');
+
+        if (!updatedAttendance) {
+            return res.status(400).json({ success: false, error: 'Already checked out for this session' });
+        }
 
         // Real-time Push to Dashboard
         if (req.app?.locals?.io) {
-            req.app.locals.io.emit('attendance_logged', attendance);
+            req.app.locals.io.emit('attendance_logged', updatedAttendance);
         }
 
         res.status(200).json({
             success: true,
-            data: attendance
+            data: updatedAttendance
         });
     } catch (error) {
         next(error);

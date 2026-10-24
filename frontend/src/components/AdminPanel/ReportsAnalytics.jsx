@@ -40,6 +40,7 @@ const ReportsAnalytics = () => {
     const handleExport = async () => {
         setIsExporting(true);
         try {
+            const token = localStorage.getItem('token');
             const url = `${getBaseApiUrl()}/admin/export?type=${reportType}&range=${dateRange}`;
             
             const response = await fetch(url, {
@@ -52,13 +53,13 @@ const ReportsAnalytics = () => {
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = downloadUrl;
-            a.download = `report_${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `SN_Enviro_${reportType.toUpperCase()}_Report_${new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
         } catch (error) {
             console.error('Export error', error);
-            alert('Failed to generate export');
+            alert('Failed to generate export file. Please check permissions.');
         } finally {
             setIsExporting(false);
         }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import {
@@ -7,6 +7,8 @@ import {
     Building2, Settings, LogOut, Menu, X, ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import api, { getSocketUrl } from '../api';
+import { io } from 'socket.io-client';
 
 const SidebarItem = ({ to, icon: Icon, label, badge, collapsed }) => (
     <NavLink
@@ -35,12 +37,12 @@ const SidebarItem = ({ to, icon: Icon, label, badge, collapsed }) => (
         </AnimatePresence>
 
         {badge && !collapsed && (
-            <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse min-w-[20px] text-center">
                 {badge}
             </span>
         )}
         {badge && collapsed && (
-            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full"></span>
+            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
         )}
         
         {/* Tooltip for collapsed state */}
@@ -57,6 +59,38 @@ const AdminLayout = () => {
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
+
+    const fetchPendingLeaves = async () => {
+        try {
+            const res = await api.get('/leaves');
+            if (res.data && res.data.success && Array.isArray(res.data.data)) {
+                const count = res.data.data.filter(l => l.status === 'Pending').length;
+                setPendingLeavesCount(count);
+            }
+        } catch (err) {
+            console.error('Failed to fetch pending leaves count:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchPendingLeaves();
+
+        // Real-Time Socket uplink for MD Leave alerts
+        const socket = io(getSocketUrl());
+
+        socket.on('new_leave_request', () => {
+            fetchPendingLeaves();
+        });
+
+        socket.on('leave_status_updated', () => {
+            fetchPendingLeaves();
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -69,8 +103,13 @@ const AdminLayout = () => {
         { to: '/admin/attendance', icon: CalendarCheck, label: 'Attendance Management' },
         { to: '/admin/live-tracking', icon: Map, label: 'Live Field Tracking' },
         { to: '/admin/announcements', icon: Megaphone, label: 'MD Announcements' },
-        { to: '/admin/notifications', icon: Bell, label: 'Notifications', badge: '3' },
-        { to: '/admin/leaves', icon: CalendarClock, label: 'Leave Management' },
+        { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
+        { 
+            to: '/admin/leaves', 
+            icon: CalendarClock, 
+            label: 'Leave Management', 
+            badge: pendingLeavesCount > 0 ? String(pendingLeavesCount) : undefined 
+        },
         { to: '/admin/reports', icon: BarChart3, label: 'Reports & Analytics' },
         { to: '/admin/departments', icon: Building2, label: 'Departments & Sites' },
         { to: '/admin/settings', icon: Settings, label: 'Settings' }

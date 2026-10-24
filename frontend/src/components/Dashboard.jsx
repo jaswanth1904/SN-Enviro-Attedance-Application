@@ -106,11 +106,43 @@ const Dashboard = () => {
     const { user, logout, updateUser, updateProfile } = useAuth();
     const navigate = useNavigate();
     const { coords, city, fullAddress, error: geoError, refresh: refreshGeo, loading: geoLoading } = useGeolocation();
-    const [attendance, setAttendance] = useState([]);
+    const [attendance, setAttendance] = useState(() => {
+        try {
+            const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const uid = storedUser?._id || storedUser?.id;
+            const cacheKey = uid ? `attendance_cache_${uid}` : 'attendance_cache';
+            const raw = localStorage.getItem(cacheKey) || localStorage.getItem('attendance_cache');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch (e) {}
+        return [];
+    });
     
     // Shift state: strictly isolated to today
     const latestRecord = attendance[0];
     const isTodayRecord = latestRecord && new Date(latestRecord.timestamp).toDateString() === new Date().toDateString();
+
+    // Initial load guard to prevent flashing 'Mark Checkin' before server verification
+    const [isInitialLoad, setIsInitialLoad] = useState(() => {
+        try {
+            const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const uid = storedUser?._id || storedUser?.id;
+            const cacheKey = uid ? `attendance_cache_${uid}` : 'attendance_cache';
+            const raw = localStorage.getItem(cacheKey) || localStorage.getItem('attendance_cache');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const latest = parsed[0];
+                    const isToday = latest && new Date(latest.timestamp).toDateString() === new Date().toDateString();
+                    if (isToday) return false;
+                }
+            }
+        } catch (e) {}
+        return true;
+    });
+
     const [currentTime, setCurrentTime] = useState(new Date());
     const isPastSevenPM = currentTime.getHours() >= 19;
     const isCheckedIn = isTodayRecord && !latestRecord.checkOut && !isPastSevenPM;
@@ -282,6 +314,12 @@ const Dashboard = () => {
             if (JSON.stringify(data) !== JSON.stringify(attendance)) {
                 setAttendance(data);
             }
+            try {
+                const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const uid = storedUser?._id || storedUser?.id;
+                if (uid) localStorage.setItem(`attendance_cache_${uid}`, JSON.stringify(data));
+                localStorage.setItem('attendance_cache', JSON.stringify(data));
+            } catch (e) {}
         } catch (err) {
             console.error('Failed to fetch attendance', err);
             // Handle network link loss explicitly
@@ -294,8 +332,37 @@ const Dashboard = () => {
             }
         } finally {
             setLoading(false);
+            setIsInitialLoad(false);
         }
     };
+
+    const [activeLeaveToday, setActiveLeaveToday] = useState(null);
+
+    const checkActiveLeaves = async () => {
+        try {
+            const res = await api.get('/leaves/my');
+            const myLeaves = res.data?.data || [];
+            const now = new Date();
+            const istDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+            const startOfToday = new Date(`${istDateStr}T00:00:00.000+05:30`);
+            const endOfToday = new Date(`${istDateStr}T23:59:59.999+05:30`);
+
+            const active = myLeaves.find(l => {
+                if (l.status !== 'Approved') return false;
+                const start = new Date(l.startDate);
+                const end = new Date(l.endDate);
+                return start <= endOfToday && end >= startOfToday;
+            });
+
+            setActiveLeaveToday(active || null);
+        } catch (e) {
+            console.error('Failed to check active leaves', e);
+        }
+    };
+
+    useEffect(() => {
+        checkActiveLeaves();
+    }, [user]);
 
     const [showSiteDetailsModal, setShowSiteDetailsModal] = useState(false);
     const [siteDetails, setSiteDetails] = useState({ duration: '8 Hours', issues: '' });
@@ -303,6 +370,13 @@ const Dashboard = () => {
     const [popupMessage, setPopupMessage] = useState({ title: '', subtitle: '' });
 
     const handleCheckAction = async (type) => {
+        if (type === 'in' && activeLeaveToday) {
+            const remarkText = activeLeaveToday.adminRemarks ? ` MD Note: "${activeLeaveToday.adminRemarks}".` : '';
+            setStatusMessage(`Attendance Locked: You are on approved ${activeLeaveToday.leaveType}.${remarkText} Check-in is disabled during approved leave.`);
+            setCheckStatus('error');
+            return;
+        }
+
         if (type === 'in' && isAfterTenThirty) {
             setStatusMessage("you're not able to login because after 10:30 AM it won't be accessible to anyone please contact manager or an HR");
             setCheckStatus('error');
@@ -361,6 +435,12 @@ const Dashboard = () => {
             setAttendance(prev => {
                 const newAtt = [...prev];
                 newAtt[0] = res.data.data;
+                try {
+                    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                    const uid = storedUser?._id || storedUser?.id;
+                    if (uid) localStorage.setItem(`attendance_cache_${uid}`, JSON.stringify(newAtt));
+                    localStorage.setItem('attendance_cache', JSON.stringify(newAtt));
+                } catch (e) {}
                 return newAtt;
             });
 
@@ -408,8 +488,14 @@ const Dashboard = () => {
                 checkOut: null
             };
             
-            setAttendance([newSession, ...attendance]);
-            localStorage.setItem('attendance_cache', JSON.stringify([newSession, ...attendance]));
+            const newAtt = [newSession, ...attendance];
+            setAttendance(newAtt);
+            try {
+                const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const uid = storedUser?._id || storedUser?.id;
+                if (uid) localStorage.setItem(`attendance_cache_${uid}`, JSON.stringify(newAtt));
+                localStorage.setItem('attendance_cache', JSON.stringify(newAtt));
+            } catch (e) {}
             
             setCheckStatus('success');
             setStatusMessage('Clock-in successful. Site Details logged.');
@@ -546,15 +632,29 @@ const Dashboard = () => {
                             <div className="bg-white rounded-2xl sm:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 sm:p-8 w-full border border-slate-100 relative overflow-hidden flex flex-col items-center text-center group">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
                                 
-                                <h3 className="text-2xl sm:text-3xl font-medium text-slate-800 mb-1.5 sm:mb-2 tracking-tight relative z-10 font-serif">
-                                    {isCheckedIn ? 'Shift Active' : isShiftCompletedToday ? 'Shift Completed' : 'Ready to Work?'}
+                                <h3 className="text-2xl sm:text-3xl font-medium text-slate-800 mb-1.5 sm:mb-2 tracking-tight relative z-10 font-serif min-h-[36px] flex items-center justify-center">
+                                    {isInitialLoad && !isTodayRecord ? (
+                                        <span className="inline-block w-40 h-8 bg-slate-200/70 rounded-xl animate-pulse" />
+                                    ) : isCheckedIn ? (
+                                        'Shift Active'
+                                    ) : activeLeaveToday ? (
+                                        'On Approved Leave'
+                                    ) : isShiftCompletedToday ? (
+                                        'Shift Completed'
+                                    ) : (
+                                        'Ready to Work?'
+                                    )}
                                 </h3>
-                                <p className="text-slate-500 font-light text-xs sm:text-sm mb-6 sm:mb-8 relative z-10">
-                                    {isCheckedIn 
+                                <p className="text-slate-500 font-light text-xs sm:text-sm mb-6 sm:mb-8 relative z-10 min-h-[20px] flex items-center justify-center">
+                                    {isInitialLoad && !isTodayRecord ? (
+                                        <span className="inline-block w-52 h-4 bg-slate-100 rounded-md animate-pulse" />
+                                    ) : isCheckedIn 
                                         ? 'You are currently logged in.' 
-                                        : isShiftCompletedToday 
-                                            ? 'Today\'s shift has concluded (7:00 PM Auto-Checkout). Fresh login available tomorrow morning!' 
-                                            : 'Verify your location and login.'}
+                                        : activeLeaveToday
+                                            ? `Leave approved by MD until ${new Date(activeLeaveToday.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}. Check-in is locked.`
+                                            : isShiftCompletedToday 
+                                                ? 'Today\'s shift has concluded (7:00 PM Auto-Checkout). Fresh login available tomorrow morning!' 
+                                                : 'Verify your location and login.'}
                                 </p>
 
                                 <div className="w-full bg-slate-50/90 rounded-2xl sm:rounded-[24px] p-4 sm:p-6 mb-6 sm:mb-8 border border-slate-100 flex flex-col items-center relative z-10">
@@ -599,7 +699,12 @@ const Dashboard = () => {
                                     </div>
                                 )}
 
-                                {isCheckedIn ? (
+                                {isInitialLoad && !isTodayRecord ? (
+                                    <div className="w-full py-4 sm:py-5 px-4 sm:px-6 rounded-2xl sm:rounded-3xl bg-slate-100/70 border border-slate-200/60 text-center flex items-center justify-center gap-3 text-slate-400 relative z-10">
+                                        <Loader2 size={18} className="animate-spin text-blue-600" />
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Verifying Active Shift Status...</span>
+                                    </div>
+                                ) : isCheckedIn ? (
                                     <div className="w-full py-4 sm:py-5 px-4 sm:px-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/30 text-center flex flex-col items-center justify-center gap-1.5 sm:gap-2 relative z-10 shadow-sm backdrop-blur-sm">
                                         <div className="flex items-center gap-2 text-emerald-700 font-extrabold text-xs sm:text-sm uppercase tracking-wider">
                                             <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
@@ -610,6 +715,25 @@ const Dashboard = () => {
                                         </div>
                                         <p className="text-[10px] sm:text-xs text-slate-500 font-medium leading-relaxed">
                                             Automatic shift checkout will be recorded at <strong>7:00 PM IST</strong>.
+                                        </p>
+                                    </div>
+                                ) : activeLeaveToday ? (
+                                    <div className="w-full py-5 px-5 sm:px-6 rounded-2xl sm:rounded-3xl bg-amber-50/90 border border-amber-300 text-center flex flex-col items-center gap-2 relative z-10 shadow-sm">
+                                        <div className="flex items-center gap-2 text-amber-800 font-extrabold text-xs sm:text-sm uppercase tracking-wider">
+                                            <Calendar size={18} className="text-amber-600" />
+                                            On Approved Leave ({activeLeaveToday.leaveType})
+                                        </div>
+                                        <p className="text-[11px] sm:text-xs text-amber-900 font-semibold">
+                                            {new Date(activeLeaveToday.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} — {new Date(activeLeaveToday.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </p>
+                                        {activeLeaveToday.adminRemarks && (
+                                            <div className="bg-white/90 border border-amber-200 rounded-xl px-3.5 py-2.5 mt-1 max-w-md w-full text-left">
+                                                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest block mb-0.5">MD Note / Instruction:</span>
+                                                <p className="text-xs italic text-slate-800">"{activeLeaveToday.adminRemarks}"</p>
+                                            </div>
+                                        )}
+                                        <p className="text-[10px] text-amber-700/80 font-medium mt-1">
+                                            🔒 Attendance check-in is locked during your approved leave period.
                                         </p>
                                     </div>
                                 ) : isShiftCompletedToday ? (
@@ -624,7 +748,7 @@ const Dashboard = () => {
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => !coords ? refreshGeo() : handleCheckAction('in')}
-                                        disabled={checkStatus === 'pending' || geoLoading || isAfterTenThirty}
+                                        disabled={checkStatus === 'pending' || geoLoading || isAfterTenThirty || !!activeLeaveToday}
                                         className={`w-full py-4 sm:py-5 md:py-6 rounded-2xl sm:rounded-3xl font-extrabold text-[11px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] flex items-center justify-center gap-2.5 sm:gap-3 transition-all duration-300 relative z-10 overflow-hidden group shadow-lg ${
                                             !coords
                                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_8px_30px_rgba(79,70,229,0.3)] border border-blue-400/50 hover:shadow-[0_8px_40px_rgba(79,70,229,0.4)]'

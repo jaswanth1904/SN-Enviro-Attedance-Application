@@ -18,14 +18,7 @@ const AttendanceManagement = () => {
                 }
             } catch (err) {
                 console.error('Failed to fetch attendance:', err);
-                
-                // Fallback to mock data for presentation
-                const now = new Date();
-                setAttendanceData([
-                    { _id: '1', user: { name: 'Rahul Sharma', role: 'Service Engineer' }, timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), locationName: 'Mumbai Site A', status: 'Present' },
-                    { _id: '2', user: { name: 'Priya Patel', role: 'Application Engineer' }, timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(), locationName: 'Ahmedabad Plant', status: 'Late' },
-                    { _id: '3', user: { name: 'Sanjay Kumar', role: 'Office Staff' }, timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), locationName: 'HQ', status: 'Absent' },
-                ]);
+                setAttendanceData([]);
             } finally {
                 setLoading(false);
             }

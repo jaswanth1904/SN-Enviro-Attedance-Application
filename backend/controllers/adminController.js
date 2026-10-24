@@ -149,9 +149,9 @@ exports.getLiveTracking = async (req, res) => {
 exports.exportReport = async (req, res) => {
     try {
         const { type, range } = req.query; // type: attendance, leaves, employees. range: today, this-week, this-month, etc.
-        let csv = '';
+        let csv = '\uFEFF'; // UTF-8 BOM for Microsoft Excel compatibility
         
-        // Very basic date filtering
+        // Date filtering
         const today = new Date();
         const queryDate = new Date();
         if (range === 'today') queryDate.setHours(0,0,0,0);
@@ -159,34 +159,41 @@ exports.exportReport = async (req, res) => {
         if (range === 'this-month') queryDate.setMonth(today.getMonth() - 1);
         
         if (type === 'attendance') {
-            const records = await Attendance.find(range !== 'custom' ? { timestamp: { $gte: queryDate } } : {}).populate('user', 'name role empId');
-            csv = 'Name,Role,Employee ID,Date,Time,Location,Status\n';
+            const records = await Attendance.find(range !== 'custom' ? { timestamp: { $gte: queryDate } } : {}).populate('user', 'name role empId email');
+            csv += 'Employee Name,Role,Employee ID,Date,Check-In Time,Check-Out Time,Total Hours,Overtime Hours,Location Name,Status\n';
             records.forEach(r => {
                 const d = new Date(r.timestamp);
                 const isLate = (d.getHours() > 10 || (d.getHours() === 10 && d.getMinutes() >= 30));
-                // Use standard string formats for Excel
-                const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
-                const timeStr = d.toTimeString().split(' ')[0]; // HH:MM:SS
-                csv += `"${r.user?.name || 'N/A'}","${r.user?.role || 'N/A'}","${r.user?.empId || 'N/A'}","${dateStr}","${timeStr}","${r.locationName || 'N/A'}","${isLate ? 'Late' : 'On-Time'}"\n`;
+                const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                const timeStr = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const checkOutStr = r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Active Shift';
+                const totalHrs = r.totalHours ? r.totalHours.toFixed(2) : '0.00';
+                const ot = r.overtime ? r.overtime.toFixed(2) : '0.00';
+                csv += `"${r.user?.name || 'N/A'}","${r.user?.role || 'N/A'}","${r.user?.empId || 'N/A'}","${dateStr}","${timeStr}","${checkOutStr}","${totalHrs}","${ot}","${r.locationName || 'Unknown Location'}","${isLate ? 'Late' : 'On-Time'}"\n`;
             });
         } else if (type === 'leaves') {
-            const records = await Leave.find(range !== 'custom' ? { appliedAt: { $gte: queryDate } } : {}).populate('user', 'name empId');
-            csv = 'Name,Employee ID,Leave Type,Start,End,Status\n';
+            const records = await Leave.find(range !== 'custom' ? { appliedAt: { $gte: queryDate } } : {}).populate('user', 'name empId email');
+            csv += 'Employee Name,Employee ID,Leave Type,Start Date,End Date,Status,MD Remarks / Note,Applied At\n';
             records.forEach(r => {
-                csv += `"${r.user?.name || 'N/A'}","${r.user?.empId || 'N/A'}","${r.leaveType}","${new Date(r.startDate).toISOString().split('T')[0]}","${new Date(r.endDate).toISOString().split('T')[0]}","${r.status}"\n`;
+                const startStr = new Date(r.startDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                const endStr = new Date(r.endDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                const appliedStr = new Date(r.appliedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                const remarks = (r.adminRemarks || r.rejectionReason || 'None').replace(/"/g, '""');
+                csv += `"${r.user?.name || 'N/A'}","${r.user?.empId || 'N/A'}","${r.leaveType || r.type}","${startStr}","${endStr}","${r.status}","${remarks}","${appliedStr}"\n`;
             });
         } else if (type === 'employees') {
             const records = await User.find();
-            csv = 'Name,Email,Employee ID,Role,Phone\n';
+            csv += 'Employee Name,Email,Employee ID,Role,Phone Number,Joining Date\n';
             records.forEach(r => {
-                csv += `"${r.name}","${r.email}","${r.empId || 'N/A'}","${r.role}","${r.phoneNumber || 'N/A'}"\n`;
+                const joinStr = r.joiningDate ? new Date(r.joiningDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) : 'N/A';
+                csv += `"${r.name}","${r.email}","${r.empId || 'N/A'}","${r.role}","${r.phoneNumber || 'N/A'}","${joinStr}"\n`;
             });
         } else {
             return res.status(400).send('Invalid report type');
         }
 
-        res.header('Content-Type', 'text/csv');
-        res.attachment(`report_${type}_${Date.now()}.csv`);
+        res.header('Content-Type', 'text/csv; charset=utf-8');
+        res.attachment(`SN_Enviro_${type.toUpperCase()}_Report_${Date.now()}.csv`);
         res.send(csv);
     } catch (err) {
         console.error('Export Error:', err);
@@ -227,7 +234,7 @@ exports.sendAnnouncement = async (req, res) => {
                         <p style="color: #475569; font-size: 16px;"><strong>MD has announced:</strong></p>
                         <p style="color: #334155; font-size: 15px; line-height: 1.6; background-color: #f8fafc; padding: 15px; border-left: 4px solid #3b82f6;">${message.replace(/\n/g, '<br>')}</p>
                         <p style="color: #475569; font-size: 16px; margin-top: 20px;">Open and see the details in the portal!</p>
-                        <a href="http://localhost:5173/dashboard" style="display: inline-block; padding: 10px 20px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">Login to Portal</a>
+                        <a href="${process.env.CLIENT_URL || 'http://localhost:5174'}/dashboard" style="display: inline-block; padding: 10px 20px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">Login to Portal</a>
                         <hr style="margin-top: 30px; border: none; border-top: 1px solid #e2e8f0;">
                         <small style="color: #94a3b8;">This is an automated announcement from SN Enviro System.</small>
                     </div>`

@@ -113,7 +113,11 @@ app.use('/api/sites', sites);
 app.use('/api/leaves', leaves);
 app.use('/api/salary', salaries);
 app.use('/api/escalations', escalationRoutes);
+app.use('/api/departments', require('./routes/departmentRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+
+
+
 
 // API Documentation / Home route
 app.get('/', (req, res) => {

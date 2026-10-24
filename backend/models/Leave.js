@@ -36,7 +36,11 @@ const leaveSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: 'User'
     },
-    rejectionReason: String
+    rejectionReason: String,
+    adminRemarks: {
+        type: String,
+        default: ''
+    }
 });
 
 // TTL Index for auto-deleting records older than 90 days (7776000 seconds)

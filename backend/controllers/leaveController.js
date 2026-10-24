@@ -64,16 +64,23 @@ const sendEmail = require('../utils/sendEmail');
 // @access  Private (Admin/Senior)
 exports.updateLeaveStatus = async (req, res, next) => {
     try {
-        const { status, rejectionReason } = req.body;
+        const { status, rejectionReason, adminRemarks } = req.body;
         let leave = await Leave.findById(req.params.id);
 
         if (!leave) {
             return res.status(404).json({ success: false, error: 'Leave request not found' });
         }
 
+        const updateData = {
+            status,
+            approvedBy: req.user.id
+        };
+        if (adminRemarks !== undefined) updateData.adminRemarks = adminRemarks;
+        if (rejectionReason !== undefined) updateData.rejectionReason = rejectionReason;
+
         leave = await Leave.findByIdAndUpdate(
             req.params.id,
-            { status, rejectionReason, approvedBy: req.user.id },
+            updateData,
             { new: true, runValidators: true }
         ).populate('user', 'name email role');
 
@@ -89,18 +96,41 @@ exports.updateLeaveStatus = async (req, res, next) => {
                     try {
                         const action = status === 'Approved' ? 'approved' : 'rejected';
                         const color = status === 'Approved' ? '#10b981' : '#f43f5e';
-                        
+                        const remarksToDisplay = adminRemarks || (status === 'Rejected' ? rejectionReason : '');
+
+                        const formattedStart = new Date(leave.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' });
+                        const formattedEnd = new Date(leave.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' });
+
                         await sendEmail({
                             email: leave.user.email,
-                            subject: `Leave Request ${status}`,
-                            message: `<div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                                <h2 style="color: #1e293b; border-bottom: 2px solid ${color}; padding-bottom: 10px;">Leave ${status}</h2>
-                                <p style="color: #475569; font-size: 16px;">Hello <strong>${leave.user.name}</strong>,</p>
-                                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your ${leave.leaveType} request from ${new Date(leave.startDate).toLocaleDateString()} to ${new Date(leave.endDate).toLocaleDateString()} has been <strong>${action}</strong> by the MD.</p>
-                                ${status === 'Rejected' && rejectionReason ? `<p style="color: #475569; font-size: 15px; background-color: #fef1f2; padding: 10px; border-left: 4px solid #f43f5e;">Reason: ${rejectionReason}</p>` : ''}
-                                <hr style="margin-top: 30px; border: none; border-top: 1px solid #e2e8f0;">
-                                <small style="color: #94a3b8;">This is an automated notification from SN Enviro System.</small>
-                            </div>`
+                            subject: `Official Leave Update: Request ${status} — SN Enviro`,
+                            message: `
+                                <div style="font-family: Arial, sans-serif; padding: 24px; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+                                    <div style="border-bottom: 3px solid ${color}; padding-bottom: 12px; margin-bottom: 20px;">
+                                        <h2 style="color: #0f172a; margin: 0; font-size: 20px;">Leave Request ${status}</h2>
+                                        <small style="color: #64748b;">SN Enviro Attendance & Human Resources Portal</small>
+                                    </div>
+                                    <p style="color: #334155; font-size: 15px;">Dear <strong>${leave.user.name}</strong>,</p>
+                                    <p style="color: #334155; font-size: 15px; line-height: 1.6;">
+                                        Your <strong>${leave.leaveType}</strong> application from <strong>${formattedStart}</strong> to <strong>${formattedEnd}</strong> has been <strong><span style="color: ${color};">${action.toUpperCase()}</span></strong> by Management / MD.
+                                    </p>
+                                    ${remarksToDisplay ? `
+                                    <div style="background-color: ${status === 'Approved' ? '#f0fdf4' : '#fef2f2'}; border-left: 4px solid ${color}; padding: 14px; border-radius: 6px; margin: 20px 0;">
+                                        <p style="margin: 0; font-size: 13px; font-weight: bold; color: ${color}; text-transform: uppercase; letter-spacing: 0.5px;">MD / Management Note:</p>
+                                        <p style="margin: 6px 0 0; font-size: 14px; color: #1e293b; font-style: italic;">"${remarksToDisplay}"</p>
+                                    </div>
+                                    ` : ''}
+                                    ${status === 'Approved' ? `
+                                    <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; margin-top: 15px;">
+                                        <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                                            🔒 <strong>Notice:</strong> During your approved leave period (${formattedStart} to ${formattedEnd}), your daily attendance check-in portal will be automatically locked to prevent duplicate or conflicting logs. Portal check-in will reopen automatically upon your return.
+                                        </p>
+                                    </div>
+                                    ` : ''}
+                                    <hr style="margin: 25px 0 15px; border: none; border-top: 1px solid #e2e8f0;">
+                                    <small style="color: #94a3b8; font-size: 11px;">Automated notification generated by SN Enviro Systems via attendance@snenviro.in</small>
+                                </div>
+                            `
                         });
                     } catch (err) {
                         console.error('Failed to send leave status email', err);

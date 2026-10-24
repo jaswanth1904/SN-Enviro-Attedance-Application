@@ -9,10 +9,10 @@ const crypto = require('crypto');
 cron.schedule('30 10 * * *', async () => {
     console.log(`\x1b[36m%s\x1b[0m`, `[Cron] Running Escalation Check for Late Logins...`);
     try {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 59, 999);
+        const now = new Date();
+        const istDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
+        const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
 
         // Find all non-Admin employees
         const employees = await User.find({ role: { $ne: 'Admin' } });
@@ -87,6 +87,9 @@ cron.schedule('30 10 * * *', async () => {
     } catch (err) {
         console.error('Escalation Cron Job Error:', err);
     }
+}, {
+    scheduled: true,
+    timezone: "Asia/Kolkata"
 });
 
-console.log(`\x1b[35m%s\x1b[0m`, `⚙️ Escalation Engine initialized: Runs daily at 10:30 AM.`);
+console.log(`\x1b[35m%s\x1b[0m`, `⚙️ Escalation Engine initialized: Runs daily at 10:30 AM IST.`);
