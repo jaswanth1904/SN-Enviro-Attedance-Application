@@ -18,6 +18,7 @@ const GeoAttendanceMark = lazy(() => import('./components/Attendance/GeoAttendan
 const LateExplanationForm = lazy(() => import('./components/Attendance/LateExplanationForm'));
 const PlantSiteLogger = lazy(() => import('./components/Attendance/PlantSiteLogger'));
 const LiveTrackingMap = lazy(() => import('./components/Dashboards/LiveTrackingMap'));
+const ResetPassword = lazy(() => import('./components/ResetPassword'));
 
 // New Admin Panel Components
 const AdminLayout = lazy(() => import('./components/AdminPanel/AdminLayout'));
@@ -111,6 +112,7 @@ const AppContent = () => {
               {/* Futuristic Geo-Attendance & Site Routes */}
               <Route path="/mark-attendance" element={<Navigate to="/dashboard" replace />} />
               <Route path="/explain-absence/:token" element={<PageWrapper><LateExplanationForm /></PageWrapper>} />
+              <Route path="/reset-password/:token" element={<PageWrapper><ResetPassword /></PageWrapper>} />
               <Route path="/log-site" element={user ? <PageWrapper><PlantSiteLogger /></PageWrapper> : <Navigate to="/" />} />
             </Routes>
           </Suspense>

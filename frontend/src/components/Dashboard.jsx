@@ -507,30 +507,8 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-md-surface pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-8 relative">
+        <div className="min-h-screen bg-md-surface pt-20 sm:pt-24 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-8 relative">
             <div className="max-w-7xl mx-auto relative z-10">
-                {/* M3 Header Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center text-center justify-center gap-4 sm:gap-6 mb-6 sm:mb-10 mt-2 sm:mt-4 md:mt-8"
-                >
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                            <StatusBadge active={isCheckedIn} />
-                            <span className="text-brand-primary/60 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest">Authenticated node</span>
-                        </div>
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-2 sm:mb-3">
-                            SN Enviro <span className="text-brand-primary">Portal</span>
-                        </h1>
-                        <p className="text-slate-500 font-medium text-xs sm:text-sm flex items-center justify-center gap-2 max-w-sm px-4">
-                            <ShieldCheck size={16} className="text-brand-primary shrink-0" /> Secure Enterprise Access
-                        </p>
-                    </div>
-                </motion.div>
-
-
-
                 {/* M3 Tab Navigation */}
                 <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-10 overflow-x-auto pb-3 sm:pb-4 scrollbar-hide w-full">
                     {[

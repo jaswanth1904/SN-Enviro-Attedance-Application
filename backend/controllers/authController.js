@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -174,4 +176,132 @@ const sendTokenResponse = (user, statusCode, res) => {
             currentProjects: user.currentProjects
         }
     });
+};
+
+// @desc    Forgot Password
+// @route   POST /api/auth/forgotpassword
+// @access  Public
+exports.forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please provide an email address'
+            });
+        }
+
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'No employee account found with this email address.'
+            });
+        }
+
+        // Get reset token
+        const resetToken = user.getResetPasswordToken();
+
+        await user.save({ validateBeforeSave: false });
+
+        // Create reset url (dynamic based on request origin or production domain)
+        const host = req.headers.origin || 'https://attendance.snenviro.org';
+        const resetUrl = `${host}/reset-password/${resetToken}`;
+
+        const message = `
+            <div style="font-family: Arial, sans-serif; padding: 24px; max-width: 580px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h2 style="color: #0f172a; margin: 0; font-size: 22px;">SN Enviro Attendance Portal</h2>
+                    <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Password Reset Request</p>
+                </div>
+                <p style="color: #334155; font-size: 15px;">Hello <strong>${user.name}</strong>,</p>
+                <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                    You are receiving this email because a password reset request was made for your SN Enviro account. Click the button below to choose a new password:
+                </p>
+                <div style="text-align: center; margin: 28px 0;">
+                    <a href="${resetUrl}" style="background-color: #2563EB; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
+                        Reset Password
+                    </a>
+                </div>
+                <p style="color: #64748b; font-size: 12px; line-height: 1.5;">
+                    This link is valid for <strong>30 minutes</strong>. If you did not request this password reset, please ignore this email and your password will remain unchanged.
+                </p>
+                <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;">
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">
+                    Automated system notification from SN Enviro Attendance Pvt Ltd &bull; attendance@snenviro.in
+                </p>
+            </div>
+        `;
+
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: '🔐 Password Reset Link - SN Enviro Portal',
+                message
+            });
+
+            res.status(200).json({
+                success: true,
+                message: 'Password reset link sent to your registered email'
+            });
+        } catch (err) {
+            console.error('Password reset email error:', err);
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+            await user.save({ validateBeforeSave: false });
+
+            return res.status(500).json({
+                success: false,
+                error: 'Email could not be sent. Please try again later.'
+            });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Reset Password
+// @route   PUT /api/auth/resetpassword/:resettoken
+// @access  Public
+exports.resetPassword = async (req, res, next) => {
+    try {
+        const { password } = req.body;
+
+        if (!password || password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please provide a password with at least 6 characters'
+            });
+        }
+
+        // Get hashed token
+        const resetPasswordToken = crypto
+            .createHash('sha256')
+            .update(req.params.resettoken)
+            .digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken,
+            resetPasswordExpire: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid or expired password reset link. Please request a new one.'
+            });
+        }
+
+        // Set new password
+        user.password = password;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save();
+
+        sendTokenResponse(user, 200, res);
+    } catch (error) {
+        next(error);
+    }
 };

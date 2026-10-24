@@ -7,11 +7,12 @@ import { useNavigate } from 'react-router-dom';
 
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     const [mode, setMode] = useState(initialMode);
-    const { login, register } = useAuth();
+    const { login, register, forgotPassword } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const [forgotSent, setForgotSent] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showRoles, setShowRoles] = useState(false);
     const [formData, setFormData] = useState({
@@ -42,6 +43,17 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         e.preventDefault();
         setError('');
         setLoading(true);
+
+        if (mode === 'forgot') {
+            const result = await forgotPassword(formData.email);
+            if (result.success) {
+                setForgotSent(true);
+            } else {
+                setError(result.message);
+            }
+            setLoading(false);
+            return;
+        }
 
         if (mode === 'login') {
             const result = await login(formData.email, formData.password);
@@ -119,40 +131,66 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                 <h2 className="text-3xl font-bold text-[#22223b] mb-2 tracking-tight" style={{ fontFamily: 'var(--font-serif, "Playfair Display", serif)' }}>Verified!</h2>
                                 <p className="text-slate-500 font-light text-sm">Authentication complete. Redirecting...</p>
                             </motion.div>
+                        ) : mode === 'forgot' && forgotSent ? (
+                            <motion.div
+                                key="forgot-success"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex flex-col items-center justify-center py-10 text-center"
+                            >
+                                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 border border-blue-100 shadow-sm">
+                                    <Mail size={32} />
+                                </div>
+                                <h3 className="text-2xl font-bold text-slate-900 mb-2">Check Your Email</h3>
+                                <p className="text-slate-500 text-xs leading-relaxed max-w-xs mb-6">
+                                    We've dispatched a secure password reset link to <strong>{formData.email}</strong>. Please check your inbox and click the link to reset your password.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => { setMode('login'); setForgotSent(false); setError(''); }}
+                                    className="px-6 py-3 rounded-full bg-slate-900 text-white hover:bg-black text-xs font-bold transition-all shadow-sm"
+                                >
+                                    Back to Sign In
+                                </button>
+                            </motion.div>
                         ) : (
                             <motion.div key="form" className="animate-fade-in pt-4 sm:pt-0">
                                 
                                 <div className="flex flex-col mb-8">
                                     <h2 className="text-3xl sm:text-4xl font-medium text-[#22223b] tracking-tight mb-2" style={{ fontFamily: 'var(--font-serif, "Playfair Display", serif)' }}>
-                                        {mode === 'login' ? 'Welcome back.' : 'Create account.'}
+                                        {mode === 'login' ? 'Welcome back.' : mode === 'signup' ? 'Create account.' : 'Reset Password.'}
                                     </h2>
                                     <p className="text-slate-500 font-light text-sm">
-                                        Enter your credentials to access the SN Enviro portal.
+                                        {mode === 'forgot' 
+                                            ? 'Enter your registered email to receive an instant reset link.'
+                                            : 'Enter your credentials to access the SN Enviro portal.'}
                                     </p>
                                 </div>
 
-                                <div className="flex p-1 bg-slate-50 rounded-full mb-8 border border-slate-100 relative overflow-hidden">
-                                    <motion.div
-                                        layoutId="auth-pill"
-                                        className="absolute inset-y-1 w-[calc(50%-4px)] h-[calc(100%-8px)] rounded-full bg-white shadow-sm z-0"
-                                        style={{ left: mode === 'login' ? '4px' : 'calc(50%)' }}
-                                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setMode('login')}
-                                        className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors relative z-10 ${mode === 'login' ? 'text-slate-900' : 'text-slate-400'}`}
-                                    >
-                                        Login
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMode('signup')}
-                                        className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors relative z-10 ${mode === 'signup' ? 'text-slate-900' : 'text-slate-400'}`}
-                                    >
-                                        Register
-                                    </button>
-                                </div>
+                                {mode !== 'forgot' && (
+                                    <div className="flex p-1 bg-slate-50 rounded-full mb-8 border border-slate-100 relative overflow-hidden">
+                                        <motion.div
+                                            layoutId="auth-pill"
+                                            className="absolute inset-y-1 w-[calc(50%-4px)] h-[calc(100%-8px)] rounded-full bg-white shadow-sm z-0"
+                                            style={{ left: mode === 'login' ? '4px' : 'calc(50%)' }}
+                                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setMode('login')}
+                                            className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors relative z-10 ${mode === 'login' ? 'text-slate-900' : 'text-slate-400'}`}
+                                        >
+                                            Login
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setMode('signup')}
+                                            className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors relative z-10 ${mode === 'signup' ? 'text-slate-900' : 'text-slate-400'}`}
+                                        >
+                                            Register
+                                        </button>
+                                    </div>
+                                )}
 
                                 {error && (
                                     <motion.div
@@ -226,30 +264,32 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                         />
                                     </div>
 
-                                    <div className="relative group">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
-                                        <input
-                                            type={showPassword ? "text" : "password"}
-                                            placeholder="Password"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-12 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                                            required
-                                            value={formData.password}
-                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        />
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
-                                        >
-                                            {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
-                                        </button>
-                                    </div>
+                                    {mode !== 'forgot' && (
+                                        <div className="relative group">
+                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} strokeWidth={1.5} />
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="Password"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-12 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                                required={mode !== 'forgot'}
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                            />
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                                            >
+                                                {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {mode === 'login' && (
                                         <div className="flex justify-end mt-2">
                                             <button 
                                                 type="button"
-                                                onClick={() => alert("Password reset link will be sent to your registered email.")}
+                                                onClick={() => { setMode('forgot'); setError(''); setForgotSent(false); }}
                                                 className="text-[11px] font-bold text-slate-500 hover:text-blue-600 transition-colors"
                                             >
                                                 Forgot Password?
@@ -260,18 +300,28 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="w-full py-4 bg-[#22223b] text-white rounded-full font-bold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-black active:scale-[0.98] transition-all shadow-md mt-8"
+                                        className="w-full py-4 bg-[#22223b] text-white rounded-full font-bold text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-black active:scale-[0.98] transition-all shadow-md mt-6"
                                     >
                                         {loading ? (
                                             <RefreshCw className="animate-spin" size={18} />
                                         ) : (
                                             <>
-                                                {mode === 'login' ? 'Sign In' : 'Create Account'} <ArrowRight size={16} />
+                                                {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'} <ArrowRight size={16} />
                                             </>
                                         )}
                                     </button>
-                                    
-                                
+
+                                    {mode === 'forgot' && (
+                                        <div className="text-center pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setMode('login'); setError(''); setForgotSent(false); }}
+                                                className="text-xs font-bold text-blue-600 hover:underline"
+                                            >
+                                                Back to Sign In
+                                            </button>
+                                        </div>
+                                    )}
                                 </form>
                             </motion.div>
                         )}

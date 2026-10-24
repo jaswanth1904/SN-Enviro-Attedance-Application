@@ -116,6 +116,41 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
+    const forgotPassword = async (email) => {
+        try {
+            const API_URL = getApiUrl();
+            const response = await axios.post(`${API_URL}/auth/forgotpassword`, { email });
+            return { success: true, message: response.data.message };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.error || error.response?.data?.message || 'Could not send reset link. Please try again.'
+            };
+        }
+    };
+
+    const resetPassword = async (token, password) => {
+        try {
+            const API_URL = getApiUrl();
+            const response = await axios.put(`${API_URL}/auth/resetpassword/${token}`, { password });
+            const { token: authToken, user } = response.data;
+
+            if (authToken && user) {
+                localStorage.setItem('token', authToken);
+                localStorage.setItem('user', JSON.stringify(user));
+                axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+                setUser(user);
+            }
+
+            return { success: true, data: response.data };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.error || error.response?.data?.message || 'Password reset failed. Link may have expired.'
+            };
+        }
+    };
+
     const value = {
         user,
         loading,
@@ -123,7 +158,9 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateUser,
-        updateProfile
+        updateProfile,
+        forgotPassword,
+        resetPassword
     };
 
     return (
