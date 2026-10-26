@@ -39,7 +39,8 @@ const triggerLateCheckInEscalation = async (user, attendance) => {
                 token: token
             });
 
-            const explanationUrl = `https://sn-enviro-attedance-application.vercel.app/explain-absence/${token}`;
+            const baseUrl = process.env.FRONTEND_URL || 'https://attendance.snenviro.org';
+            const explanationUrl = `${baseUrl}/explain-absence/${token}`;
             await sendEmail({
                 email: user.email,
                 subject: 'ESCALATION: Late Check-In Alert',
@@ -123,24 +124,40 @@ exports.recordAttendance = async (req, res, next) => {
         const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
         const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
 
-        // Active Approved Leave Guard (Blocks punches during authorized leaves)
+        // Active Work From Home (WFH) & Approved Leave Guard
         const Leave = require('../models/Leave');
-        const activeApprovedLeave = await Leave.findOne({
+        const activeWFH = await Leave.findOne({
             user: req.user.id,
             status: 'Approved',
+            leaveType: 'Work From Home (WFH)',
             startDate: { $lte: endOfDay },
             endDate: { $gte: startOfDay }
         });
 
-        if (activeApprovedLeave) {
-            const formattedStart = new Date(activeApprovedLeave.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
-            const formattedEnd = new Date(activeApprovedLeave.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
-            const remarkText = activeApprovedLeave.adminRemarks ? ` MD Note: "${activeApprovedLeave.adminRemarks}".` : '';
-            return res.status(403).json({
-                success: false,
-                isLeaveLocked: true,
-                error: `Attendance Locked: You are on approved ${activeApprovedLeave.leaveType} (${formattedStart} to ${formattedEnd}).${remarkText} Check-in is disabled during approved leave periods.`
+        if (activeWFH) {
+            attendanceData.isWFH = true;
+            if (!attendanceData.locationName.includes('(WFH)')) {
+                attendanceData.locationName = `${attendanceData.locationName} (WFH Approved)`;
+            }
+        } else {
+            // Active Approved Leave Guard (Blocks punches during authorized vacation/sick leaves)
+            const activeApprovedLeave = await Leave.findOne({
+                user: req.user.id,
+                status: 'Approved',
+                startDate: { $lte: endOfDay },
+                endDate: { $gte: startOfDay }
             });
+
+            if (activeApprovedLeave) {
+                const formattedStart = new Date(activeApprovedLeave.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
+                const formattedEnd = new Date(activeApprovedLeave.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
+                const remarkText = activeApprovedLeave.adminRemarks ? ` MD Note: "${activeApprovedLeave.adminRemarks}".` : '';
+                return res.status(403).json({
+                    success: false,
+                    isLeaveLocked: true,
+                    error: `Attendance Locked: You are on approved ${activeApprovedLeave.leaveType} (${formattedStart} to ${formattedEnd}).${remarkText} Check-in is disabled during approved leave periods.`
+                });
+            }
         }
 
         const existingShift = await Attendance.findOne({
@@ -191,9 +208,6 @@ exports.recordAttendance = async (req, res, next) => {
             }
             throw createErr;
         }
-
-        // Notify
-        await sendOfficerNotification(req.user, req.site || { name: attendanceData.locationName }, attendance);
 
         // Check for Late Check-In (After 10:30 AM IST) -> Auto-trigger Escalation Warning
         await triggerLateCheckInEscalation(req.user, attendance);
@@ -276,24 +290,40 @@ exports.recordImmediateAttendance = async (req, res, next) => {
         const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
         const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
 
-        // Active Approved Leave Guard (Blocks punches during authorized leaves)
+        // Active Work From Home (WFH) & Approved Leave Guard
         const Leave = require('../models/Leave');
-        const activeApprovedLeave = await Leave.findOne({
+        const activeWFH = await Leave.findOne({
             user: req.user.id,
             status: 'Approved',
+            leaveType: 'Work From Home (WFH)',
             startDate: { $lte: endOfDay },
             endDate: { $gte: startOfDay }
         });
 
-        if (activeApprovedLeave) {
-            const formattedStart = new Date(activeApprovedLeave.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
-            const formattedEnd = new Date(activeApprovedLeave.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
-            const remarkText = activeApprovedLeave.adminRemarks ? ` MD Note: "${activeApprovedLeave.adminRemarks}".` : '';
-            return res.status(403).json({
-                success: false,
-                isLeaveLocked: true,
-                error: `Attendance Locked: You are on approved ${activeApprovedLeave.leaveType} (${formattedStart} to ${formattedEnd}).${remarkText} Check-in is disabled during approved leave periods.`
+        if (activeWFH) {
+            attendanceData.isWFH = true;
+            if (!attendanceData.locationName.includes('(WFH)')) {
+                attendanceData.locationName = `${attendanceData.locationName} (WFH Approved)`;
+            }
+        } else {
+            // Active Approved Leave Guard (Blocks punches during authorized vacation/sick leaves)
+            const activeApprovedLeave = await Leave.findOne({
+                user: req.user.id,
+                status: 'Approved',
+                startDate: { $lte: endOfDay },
+                endDate: { $gte: startOfDay }
             });
+
+            if (activeApprovedLeave) {
+                const formattedStart = new Date(activeApprovedLeave.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
+                const formattedEnd = new Date(activeApprovedLeave.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' });
+                const remarkText = activeApprovedLeave.adminRemarks ? ` MD Note: "${activeApprovedLeave.adminRemarks}".` : '';
+                return res.status(403).json({
+                    success: false,
+                    isLeaveLocked: true,
+                    error: `Attendance Locked: You are on approved ${activeApprovedLeave.leaveType} (${formattedStart} to ${formattedEnd}).${remarkText} Check-in is disabled during approved leave periods.`
+                });
+            }
         }
 
         const existingShift = await Attendance.findOne({
@@ -344,9 +374,6 @@ exports.recordImmediateAttendance = async (req, res, next) => {
             }
             throw createErr;
         }
-
-        // Proactive step: Trigger notification
-        await sendOfficerNotification(req.user, req.site || { name: attendanceData.locationName }, attendance);
 
         // Check for Late Check-In (After 10:30 AM IST) -> Auto-trigger Escalation Warning
         await triggerLateCheckInEscalation(req.user, attendance);

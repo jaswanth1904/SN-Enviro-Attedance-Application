@@ -1,5 +1,6 @@
 const calculateDistance = require('../utils/distance');
 const Site = require('../models/Site');
+const Leave = require('../models/Leave');
 
 /**
  * Middleware to check if the user's provided location is within the allowed radius of the site.
@@ -15,13 +16,39 @@ const checkLocation = async (req, res, next) => {
         });
     }
 
-    // If siteId is not provided, we treat it as a service/field location (no radius check)
-    if (!siteId) {
-        req.isServiceLocation = true;
-        return next();
-    }
-
     try {
+        // If employee has an Approved Work From Home (WFH) for today, allow check-in from anywhere
+        if (req.user) {
+            const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+            const startOfDay = new Date(`${todayStr}T00:00:00.000+05:30`);
+            const endOfDay = new Date(`${todayStr}T23:59:59.999+05:30`);
+            const activeWFH = await Leave.findOne({
+                user: req.user.id || req.user._id,
+                status: 'Approved',
+                leaveType: 'Work From Home (WFH)',
+                startDate: { $lte: endOfDay },
+                endDate: { $gte: startOfDay }
+            });
+            if (activeWFH) {
+                req.isServiceLocation = true;
+                req.isWFH = true;
+                return next();
+            }
+
+            // Tech roles (Software & Embedded) authorized for remote/flexible check-in
+            const isTechRole = ['Software Developer', 'Embedded Engineer', 'Application Engineer', 'Office Employee'].includes(req.user.role);
+            if (isTechRole) {
+                req.isServiceLocation = true;
+                return next();
+            }
+        }
+
+        // If siteId is not provided, we treat it as a service/field location (no radius check)
+        if (!siteId) {
+            req.isServiceLocation = true;
+            return next();
+        }
+
         const site = await Site.findById(siteId);
 
         if (!site) {

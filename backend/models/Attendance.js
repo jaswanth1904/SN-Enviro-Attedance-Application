@@ -57,6 +57,10 @@ const attendanceSchema = new mongoose.Schema({
     overtime: {
         type: Number,
         default: 0
+    },
+    isWFH: {
+        type: Boolean,
+        default: false
     }
 });
 

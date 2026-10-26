@@ -58,7 +58,7 @@ const sendOfficerNotification = async (userData, siteData, attendanceData) => {
     }
 };
 
-const sendDailyReport = async (presentUsers, absentUsers) => {
+const sendDailyReport = async (presentUsers, absentUsers, onLeaveUsers = []) => {
     try {
         const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         const subject = `📋 Daily Attendance Report: ${today}`;
@@ -89,10 +89,14 @@ const sendDailyReport = async (presentUsers, absentUsers) => {
                         </div>
                         
                         <div style="padding: 20px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
-                            <div style="display: flex; gap: 20px; margin-bottom: 25px;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 25px;">
                                 <div style="flex: 1; padding: 15px; background: #e8f5e9; border-radius: 8px; text-align: center;">
                                     <h3 style="color: #2e7d32; margin: 0;">${presentUsers.length}</h3>
                                     <p style="margin: 0; font-size: 0.8em; font-weight: bold; color: #1b5e20;">PRESENT</p>
+                                </div>
+                                <div style="flex: 1; padding: 15px; background: #e0f2fe; border-radius: 8px; text-align: center;">
+                                    <h3 style="color: #0284c7; margin: 0;">${onLeaveUsers.length}</h3>
+                                    <p style="margin: 0; font-size: 0.8em; font-weight: bold; color: #0369a1;">ON LEAVE</p>
                                 </div>
                                 <div style="flex: 1; padding: 15px; background: #ffebee; border-radius: 8px; text-align: center;">
                                     <h3 style="color: #c62828; margin: 0;">${absentUsers.length}</h3>
@@ -105,9 +109,14 @@ const sendDailyReport = async (presentUsers, absentUsers) => {
                                 ${presentUsers.map(u => `<li style="margin-bottom: 5px;"><strong>${u.name}</strong> <span style="color: #666; font-size: 0.9em;">(${u.role})</span></li>`).join('') || 'None'}
                             </ul>
 
+                            <h4 style="color: #0284c7; border-bottom: 2px solid #f5f5f5; padding-bottom: 10px; margin-top: 25px;">🏖️ On Approved Leave</h4>
+                            <ul style="padding-left: 20px; color: #666;">
+                                ${onLeaveUsers.map(u => `<li style="margin-bottom: 5px;"><strong>${u.name}</strong> <span style="font-size: 0.9em;">(${u.leaveType || 'Approved Leave'})</span></li>`).join('') || 'None on leave today'}
+                            </ul>
+
                             <h4 style="color: #c62828; border-bottom: 2px solid #f5f5f5; padding-bottom: 10px; margin-top: 25px;">❌ Absent List</h4>
                             <ul style="padding-left: 20px; color: #666;">
-                                ${absentUsers.map(u => `<li style="margin-bottom: 5px;">${u.name} <span style="font-size: 0.9em;">(${u.role})</span></li>`).join('') || 'All staff are present'}
+                                ${absentUsers.map(u => `<li style="margin-bottom: 5px;">${u.name} <span style="font-size: 0.9em;">(${u.role})</span></li>`).join('') || 'All staff are accounted for'}
                             </ul>
 
                             <hr style="border: none; border-top: 1px solid #f5f5f5; margin: 25px 0;">

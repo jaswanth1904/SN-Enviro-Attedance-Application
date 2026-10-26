@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useGeolocation } from './useGeolocation';
-import { LogOut, User, Menu, X, MapPin, ShieldAlert, Zap, LayoutDashboard, Activity, ChevronDown, Navigation, Map, UserCog, BellRing } from 'lucide-react';
+import { LogOut, User, Menu, X, MapPin, ShieldAlert, Zap, LayoutDashboard, Activity, ChevronDown, Navigation, Map, UserCog, BellRing, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -95,9 +95,14 @@ const Navbar = ({ onAuthClick }) => {
                                                 </Link>
                                                 
                                                 {user?.role !== 'Admin' && (
-                                                    <Link to="/log-site" onClick={closeAll} className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all">
-                                                        <MapPin size={16} className="text-emerald-600" /> Log Site Visit
-                                                    </Link>
+                                                    <>
+                                                        <Link to="/apply-leave" onClick={closeAll} className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all">
+                                                            <Calendar size={16} className="text-amber-500" /> Apply Leave / WFH
+                                                        </Link>
+                                                        <Link to="/log-site" onClick={closeAll} className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all">
+                                                            <MapPin size={16} className="text-emerald-600" /> Log Site Visit
+                                                        </Link>
+                                                    </>
                                                 )}
 
                                                 {(user.role === 'Admin' || user.role === 'Application Engineer') && (
@@ -189,9 +194,14 @@ const Navbar = ({ onAuthClick }) => {
                                             </Link>
                                             
                                             {user?.role !== 'Admin' && (
-                                                <Link to="/log-site" onClick={closeAll} className="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-50/80 hover:bg-emerald-100/80 font-bold text-emerald-800 text-xs active:scale-98 transition-all">
-                                                    <MapPin size={18} className="text-emerald-600" /> Log Site Visit
-                                                </Link>
+                                                <>
+                                                    <Link to="/apply-leave" onClick={closeAll} className="flex items-center gap-3 p-3.5 rounded-xl bg-amber-50/80 hover:bg-amber-100/80 font-bold text-amber-800 text-xs active:scale-98 transition-all">
+                                                        <Calendar size={18} className="text-amber-600" /> Apply Leave / WFH
+                                                    </Link>
+                                                    <Link to="/log-site" onClick={closeAll} className="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-50/80 hover:bg-emerald-100/80 font-bold text-emerald-800 text-xs active:scale-98 transition-all">
+                                                        <MapPin size={18} className="text-emerald-600" /> Log Site Visit
+                                                    </Link>
+                                                </>
                                             )}
 
                                             {(user.role === 'Admin' || user.role === 'Application Engineer') && (

@@ -164,7 +164,11 @@ const LeaveManagement = () => {
                             {leave.status !== 'Pending' && (
                                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
                                     <span className="font-semibold">Processed by Management</span>
-                                    <span className="font-mono text-[10px]">{leave.status === 'Approved' ? '🔒 Check-In Locked' : 'Unlocked'}</span>
+                                    <span className="font-mono text-[10px]">
+                                        {leave.status === 'Approved' 
+                                            ? (leave.leaveType === 'Work From Home (WFH)' ? '🏠 Remote Duty Active' : '🔒 Check-In Locked') 
+                                            : 'Unlocked'}
+                                    </span>
                                 </div>
                             )}
                         </motion.div>
@@ -205,10 +209,14 @@ const LeaveManagement = () => {
                             </div>
 
                             {actionModal.status === 'Approved' && (
-                                <div className="p-3.5 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-900 flex items-start gap-2.5">
-                                    <span className="text-base">🔒</span>
+                                <div className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${actionModal.leave?.leaveType === 'Work From Home (WFH)' ? 'bg-cyan-50 border-cyan-100 text-cyan-950' : 'bg-blue-50 border-blue-100 text-blue-900'}`}>
+                                    <span className="text-base">{actionModal.leave?.leaveType === 'Work From Home (WFH)' ? '🏠' : '🔒'}</span>
                                     <p className="leading-relaxed">
-                                        Approving will automatically <strong>lock attendance check-in</strong> for this employee from {new Date(actionModal.leave?.startDate).toLocaleDateString()} to {new Date(actionModal.leave?.endDate).toLocaleDateString()}, and dispatch an official confirmation email.
+                                        {actionModal.leave?.leaveType === 'Work From Home (WFH)' ? (
+                                            <>Approving will authorize <strong>Work From Home (WFH) duty</strong> for this employee from {new Date(actionModal.leave?.startDate).toLocaleDateString()} to {new Date(actionModal.leave?.endDate).toLocaleDateString()}, permitting remote check-in from home, and dispatch an official confirmation email.</>
+                                        ) : (
+                                            <>Approving will automatically <strong>lock attendance check-in</strong> for this employee from {new Date(actionModal.leave?.startDate).toLocaleDateString()} to {new Date(actionModal.leave?.endDate).toLocaleDateString()}, and dispatch an official confirmation email.</>
+                                        )}
                                     </p>
                                 </div>
                             )}

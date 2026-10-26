@@ -55,9 +55,16 @@ SN-Enviro-Attendance-Application/
 *   **Data Permanence:** Critical attendance data is stored permanently without TTL deletion scripts, ensuring multi-year historical compliance and audit capabilities.
 *   **Protected Routes:** All sensitive telemetry and export endpoints require bearer token authentication.
 
+---
 
+## 🚀 Future Scope & Production Scaling Roadmap
 
-🌐 Live Production Links
+For long-term enterprise expansion plans, high-concurrency stress benchmarks (1,750+ concurrent requests tested), and horizontal scaling architecture (PM2 clustering, Redis caching, Nginx load balancing), refer to:
+* 📄 [FUTURE_ROADMAP_AND_SCALING.md](file:///c:/Users/Jaswanth/Desktop/Jaswanth's%20workspace/SN-Enviro-Attedance-Application/FUTURE_ROADMAP_AND_SCALING.md)
+
+---
+
+## 🌐 Live Production Links
 🏢 Main Employee Portal (Login / Attendance Check-in): https://sn-enviro-attedance-application.vercel.app
 
 🗺️ MD's Live Command Center (Large TV Map): https://sn-enviro-attedance-application.vercel.app/tv-map

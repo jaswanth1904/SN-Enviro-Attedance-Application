@@ -2,11 +2,12 @@ const cron = require('node-cron');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
 const Explanation = require('../models/Explanation');
+const Leave = require('../models/Leave');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 // Daily at 10:30 AM
-cron.schedule('30 10 * * *', async () => {
+const checkAndEscalateLateCheckIns = async () => {
     console.log(`\x1b[36m%s\x1b[0m`, `[Cron] Running Escalation Check for Late Logins...`);
     try {
         const now = new Date();
@@ -18,6 +19,21 @@ cron.schedule('30 10 * * *', async () => {
         const employees = await User.find({ role: { $ne: 'Admin' } });
 
         for (const user of employees) {
+            // 1. Check if employee is on Approved Leave today (Excluding WFH)
+            const activeApprovedLeave = await Leave.findOne({
+                user: user._id,
+                status: 'Approved',
+                leaveType: { $ne: 'Work From Home (WFH)' },
+                startDate: { $lte: endOfDay },
+                endDate: { $gte: startOfDay }
+            });
+
+            // If on approved vacation/sick leave, they are authorized off duty. Skip escalation completely.
+            if (activeApprovedLeave) {
+                console.log(`[Cron Escalation] ⏭️ Skipping ${user.name}: On authorized ${activeApprovedLeave.leaveType}.`);
+                continue;
+            }
+
             const attendance = await Attendance.findOne({
                 user: user._id,
                 timestamp: { $gte: startOfDay, $lte: endOfDay }
@@ -57,8 +73,9 @@ cron.schedule('30 10 * * *', async () => {
                         token: token
                     });
 
-                    // Real Email Transport
-                    const explanationUrl = `https://sn-enviro-attedance-application.vercel.app/explain-absence/${token}`;
+                    // Dynamic Email Transport
+                    const baseUrl = process.env.FRONTEND_URL || 'https://attendance.snenviro.org';
+                    const explanationUrl = `${baseUrl}/explain-absence/${token}`;
                     if (user.email) {
                         try {
                             const sendEmail = require('../utils/sendEmail');
@@ -87,9 +104,13 @@ cron.schedule('30 10 * * *', async () => {
     } catch (err) {
         console.error('Escalation Cron Job Error:', err);
     }
-}, {
+};
+
+cron.schedule('30 10 * * *', checkAndEscalateLateCheckIns, {
     scheduled: true,
     timezone: "Asia/Kolkata"
 });
 
 console.log(`\x1b[35m%s\x1b[0m`, `⚙️ Escalation Engine initialized: Runs daily at 10:30 AM IST.`);
+
+module.exports = { checkAndEscalateLateCheckIns };

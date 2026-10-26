@@ -596,11 +596,11 @@ const Dashboard = () => {
         <div className="min-h-screen bg-md-surface pt-20 sm:pt-24 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-8 relative">
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* M3 Tab Navigation */}
-                <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-10 overflow-x-auto pb-3 sm:pb-4 scrollbar-hide w-full">
+                <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-10 overflow-x-auto pb-3 sm:pb-4 scrollbar-hide w-full -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
                     {[
                         { id: 'attendance', label: 'Attendance Feed', icon: Activity },
                         { id: 'control', label: 'Control Panel', icon: ShieldCheck },
-                        { id: 'leaves', label: 'Leaves Hub', icon: Calendar },
+                        { id: 'leaves', label: 'Leaves & WFH', icon: Calendar },
                         { id: 'profile', label: 'Profile Identity', icon: User },
                         { id: 'finance', label: 'Payroll Hub', icon: Wallet },
                     ].filter(tab => {
@@ -613,9 +613,9 @@ const Dashboard = () => {
                             key={tab.id}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 sm:gap-3 px-5 sm:px-7 md:px-8 py-2.5 sm:py-3.5 rounded-full font-bold uppercase tracking-wider sm:tracking-widest text-[10px] sm:text-[11px] transition-all whitespace-nowrap shrink-0 ${activeTab === tab.id ? 'm3-btn-filled shadow-md' : 'm3-btn-tonal text-md-on-surface-variant'}`}
+                            className={`flex items-center gap-1.5 sm:gap-3 px-4 sm:px-7 md:px-8 py-2.5 sm:py-3.5 rounded-full font-bold uppercase tracking-wider sm:tracking-widest text-[10px] sm:text-[11px] transition-all whitespace-nowrap shrink-0 ${activeTab === tab.id ? 'm3-btn-filled shadow-md' : 'm3-btn-tonal text-md-on-surface-variant'}`}
                         >
-                            <tab.icon size={16} className="sm:w-[18px] sm:h-[18px]" /> {tab.label}
+                            <tab.icon size={15} className="sm:w-[18px] sm:h-[18px]" /> {tab.label}
                         </motion.button>
                     ))}
                 </div>

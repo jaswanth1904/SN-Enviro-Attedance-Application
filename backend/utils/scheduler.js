@@ -39,24 +39,43 @@ const initScheduler = (app = null) => {
                 timestamp: { $gte: startOfDay, $lte: endOfDay }
             }).populate('user');
 
-            // 4. Categorize Present and Absent
-            const presentUserIds = todayAttendance.map(record => record.user._id.toString());
+            // 4. Categorize Present, On Leave, and Absent
+            const Leave = require('../models/Leave');
+            const leavesToday = await Leave.find({
+                status: 'Approved',
+                leaveType: { $ne: 'Work From Home (WFH)' },
+                startDate: { $lte: endOfDay },
+                endDate: { $gte: startOfDay }
+            });
+            const leaveMap = new Map();
+            leavesToday.forEach(l => {
+                leaveMap.set(l.user.toString(), l.leaveType);
+            });
+
+            const presentUserIds = new Set(todayAttendance.filter(r => r.user?._id).map(record => record.user._id.toString()));
 
             const presentUsers = [];
+            const onLeaveUsers = [];
             const absentUsers = [];
 
             allUsers.forEach(user => {
-                if (presentUserIds.includes(user._id.toString())) {
+                const uid = user._id.toString();
+                if (presentUserIds.has(uid)) {
                     presentUsers.push(user);
+                } else if (leaveMap.has(uid)) {
+                    onLeaveUsers.push({
+                        ...user.toObject(),
+                        leaveType: leaveMap.get(uid)
+                    });
                 } else {
                     absentUsers.push(user);
                 }
             });
 
             // 5. Trigger Email Report to DM
-            await sendDailyReport(presentUsers, absentUsers);
+            await sendDailyReport(presentUsers, absentUsers, onLeaveUsers);
 
-            console.log(`--- ✅ REPORT COMPLETE: ${presentUsers.length} Present, ${absentUsers.length} Absent ---`);
+            console.log(`--- ✅ REPORT COMPLETE: ${presentUsers.length} Present, ${onLeaveUsers.length} On Leave, ${absentUsers.length} Absent ---`);
         } catch (error) {
             console.error('--- ❌ SCHEDULER ERROR ---', error.message);
         }

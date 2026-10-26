@@ -26,12 +26,19 @@ exports.getOverviewStats = async (req, res) => {
         const pendingLeaves = await Leave.countDocuments({ status: 'Pending' });
         const onLeaveToday = await Leave.countDocuments({
             status: 'Approved',
+            leaveType: { $ne: 'Work From Home (WFH)' },
+            startDate: { $lte: new Date() },
+            endDate: { $gte: today }
+        });
+        const wfhToday = await Leave.countDocuments({
+            status: 'Approved',
+            leaveType: 'Work From Home (WFH)',
             startDate: { $lte: new Date() },
             endDate: { $gte: today }
         });
 
         // 4. Calculations
-        const absentToday = totalEmployees - presentToday - onLeaveToday;
+        const absentToday = Math.max(0, totalEmployees - presentToday - onLeaveToday);
         
         const lateLogins = todaysAttendance.filter(a => {
             const time = new Date(a.timestamp);
@@ -91,6 +98,7 @@ exports.getOverviewStats = async (req, res) => {
                 absentToday,
                 lateLogins,
                 onLeaveToday,
+                wfhToday,
                 activeSites,
                 activeDepartments,
                 attendancePercentage: totalEmployees > 0 ? Math.round((presentToday / totalEmployees) * 100) : 0,
