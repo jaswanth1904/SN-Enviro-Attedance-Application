@@ -7,7 +7,7 @@ import { io } from 'socket.io-client';
 import api, { getSocketUrl } from './api';
 
 const authorizedPlants = [
-    { name: "SN Enviro Head Office (Hyderabad)", lat: 17.4334, lng: 78.4357 },
+    { name: "SN Enviro Head Office (Hyderabad)", lat: 17.4401202, lng: 78.5043297 },
     { name: "Ultratech Cement Limited (unit: Patratu Cement Works)", lat: 23.6187, lng: 85.2746 },
     { name: "THDC India Limited, Amelia Coal Block", lat: 24.0784, lng: 82.6487 },
     { name: "Test", lat: 13.207554, lng: 79.101252 },
@@ -177,20 +177,40 @@ const TVLiveMap = () => {
             .then(data => setGeoData(data))
             .catch(err => console.error('Failed to load India GeoJSON:', err));
 
+        const formatLocationName = (locName, siteName, lat, lng) => {
+            if (locName && !locName.startsWith('Location (') && !locName.startsWith('Remote Location')) {
+                return locName;
+            }
+            if (siteName && siteName !== 'Unknown') return siteName;
+            if (lat && lng) {
+                if (Math.abs(lat - 15.4065) < 0.15 && Math.abs(lng - 79.5113) < 0.15) {
+                    return 'Kanigiri, Andhra Pradesh';
+                }
+                if (Math.abs(lat - 17.4401) < 0.05 && Math.abs(lng - 78.5043) < 0.05) {
+                    return 'SN Enviro Head Office (Hyderabad)';
+                }
+            }
+            return 'Kanigiri, Andhra Pradesh';
+        };
+
         const fetchInitialData = async () => {
             try {
                 const res = await api.get('/attendance/tv-reports');
                 const activeAttendances = res.data.data;
 
-                const activeMarkers = activeAttendances.map(a => ({
-                    id: a._id,
-                    name: a.user.name,
-                    role: a.user.role,
-                    position: [a.location.coordinates[1], a.location.coordinates[0]],
-                    site: a.locationName || (a.site ? a.site.name : 'Unknown'),
-                    time: new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    selfie: a.selfieUrl
-                }));
+                const activeMarkers = activeAttendances.map(a => {
+                    const lat = a.location?.coordinates[1];
+                    const lng = a.location?.coordinates[0];
+                    return {
+                        id: a._id,
+                        name: a.user.name,
+                        role: a.user.role,
+                        position: [lat, lng],
+                        site: formatLocationName(a.locationName, a.site?.name, lat, lng),
+                        time: new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        selfie: a.selfieUrl
+                    };
+                });
 
                 const uniqueMarkers = [];
                 const seenUsers = new Set();
@@ -213,18 +233,54 @@ const TVLiveMap = () => {
             if (newLog.checkOut) {
                 setEngineers(prev => prev.filter(e => e.name !== newLog.user.name));
             } else {
+                const lat = newLog.location?.coordinates[1];
+                const lng = newLog.location?.coordinates[0];
                 const newMarker = {
                     id: newLog._id,
                     name: newLog.user.name,
                     role: newLog.user.role,
-                    position: [newLog.location.coordinates[1], newLog.location.coordinates[0]],
-                    site: newLog.locationName || (newLog.site ? newLog.site.name : 'Unknown'),
+                    position: [lat, lng],
+                    site: formatLocationName(newLog.locationName, newLog.site?.name, lat, lng),
                     time: new Date(newLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 };
                 setEngineers(prev => {
                     const filtered = prev.filter(e => e.name !== newMarker.name);
                     return [newMarker, ...filtered];
                 });
+            }
+        });
+
+        socket.on('employee_moved', (data) => {
+            setEngineers(prev => {
+                const nameToMatch = data.name;
+                const existing = prev.find(e => e.name === nameToMatch || e.userId === data.userId);
+                if (existing) {
+                    return prev.map(e => (e.name === nameToMatch || e.userId === data.userId) ? {
+                        ...e,
+                        position: [data.lat, data.lng],
+                        site: data.locationName || e.site,
+                        isMoving: data.isMoving,
+                        speed: data.speed
+                    } : e);
+                } else {
+                    return [{
+                        id: data.id || data.userId,
+                        userId: data.userId,
+                        name: data.name,
+                        role: data.role || 'Staff',
+                        position: [data.lat, data.lng],
+                        site: data.locationName || 'Live Tracking',
+                        isMoving: data.isMoving,
+                        speed: data.speed,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    }, ...prev];
+                }
+            });
+        });
+
+        socket.on('employee_stopped_tracking', (data) => {
+            if (data?.userId) {
+                setEngineers(prev => prev.filter(e => e.userId !== data.userId && e.id !== data.userId));
             }
         });
 

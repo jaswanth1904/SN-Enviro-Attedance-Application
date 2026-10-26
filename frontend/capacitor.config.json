@@ -1,0 +1,14 @@
+{
+  "appId": "com.snenviro.attendance",
+  "appName": "SN Enviro Attendance",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "Geolocation": {
+      "permissions": ["location", "coarseLocation"]
+    }
+  }
+}

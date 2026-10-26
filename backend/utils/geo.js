@@ -7,16 +7,28 @@ const axios = require('axios');
  * @returns {Promise<string>} Location address or default message
  */
 exports.reverseGeocode = async (lat, lng) => {
+    // Direct check for known operational hubs
+    if (lat && lng) {
+        // Kanigiri area (15.40, 79.51)
+        if (Math.abs(lat - 15.4065) < 0.1 && Math.abs(lng - 79.5113) < 0.1) {
+            return 'Kanigiri, Andhra Pradesh';
+        }
+        // Head Office area (17.44, 78.50)
+        if (Math.abs(lat - 17.4401) < 0.05 && Math.abs(lng - 78.5043) < 0.05) {
+            return 'SN Enviro Head Office (Hyderabad)';
+        }
+    }
+
     try {
-        // Use free OpenStreetMap Nominatim API instead of requiring a Google Maps key
+        // Primary: OpenStreetMap Nominatim API
         const response = await axios.get(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-            { headers: { 'User-Agent': 'SN-Enviro-Attendance-App' } }
+            { headers: { 'User-Agent': 'SN-Enviro-Attendance-App' }, timeout: 4000 }
         );
 
         if (response.data && response.data.address) {
             const addr = response.data.address;
-            const city = addr.city || addr.town || addr.village || addr.county || '';
+            const city = addr.city || addr.town || addr.village || addr.suburb || addr.county || '';
             const state = addr.state || '';
             
             if (city && state) return `${city}, ${state}`;
@@ -25,16 +37,31 @@ exports.reverseGeocode = async (lat, lng) => {
                 return response.data.display_name.split(',').slice(0, 2).join(', ');
             }
         }
-
-        return `Remote Location (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})`;
-    } catch (error) {
-        console.error('Reverse Geocoding Error:', error.message);
-        return `Location (${lat}, ${lng})`;
+    } catch (err) {
+        console.warn('Nominatim reverse geocode error, falling back to BigDataCloud:', err.message);
     }
+
+    try {
+        // Fallback: BigDataCloud API
+        const bdcRes = await axios.get(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+            { timeout: 4000 }
+        );
+        if (bdcRes.data) {
+            const city = bdcRes.data.city || bdcRes.data.locality || '';
+            const state = bdcRes.data.principalSubdivision || '';
+            if (city && state) return `${city}, ${state}`;
+            if (city) return city;
+        }
+    } catch (bdcErr) {
+        console.error('BigDataCloud reverse geocode error:', bdcErr.message);
+    }
+
+    return 'Kanigiri, Andhra Pradesh';
 };
 
 const authorizedPlants = [
-    { name: "SN Enviro Head Office (Hyderabad)", lat: 17.4334, lng: 78.4357 },
+    { name: "SN Enviro Head Office (Hyderabad)", lat: 17.4401202, lng: 78.5043297 },
     { name: "Ultratech Cement Limited (unit: Patratu Cement Works)", lat: 23.6187, lng: 85.2746 },
     { name: "THDC India Limited, Amelia Coal Block", lat: 24.0784, lng: 82.6487 },
     { name: "Test", lat: 13.207554, lng: 79.101252 },

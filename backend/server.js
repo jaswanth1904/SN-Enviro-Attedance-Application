@@ -159,9 +159,67 @@ if (process.env.NODE_ENV !== 'test') {
     });
 
     io.on('connection', (socket) => {
-        console.log(`🔌 MD Dashboard connected via WebSocket: ${socket.id}`);
+        console.log(`🔌 Client connected via WebSocket: ${socket.id}`);
+
+        // Real-time Employee Movement Stream (Metro, Transit, Between Sites)
+        socket.on('employee_location_update', (data) => {
+            if (!data || !data.userId || data.lat === undefined || data.lng === undefined) return;
+            // Associate user metadata with socket for disconnect handling
+            socket.userId = data.userId;
+            socket.userName = data.name;
+            socket.lastLocation = data.locationName;
+            socket.lastLat = data.lat;
+            socket.lastLng = data.lng;
+
+            // Broadcast live movement immediately to all connected MD & Admin live maps
+            io.emit('employee_moved', {
+                ...data,
+                serverTimestamp: new Date().toISOString()
+            });
+        });
+
+        // Shift Checkout / Stop Tracking -> Halt real-time GPS broadcast
+        socket.on('employee_tracking_stopped', (data) => {
+            if (!data || !data.userId) return;
+            socket.userId = null; // Clean up so disconnect doesn't re-emit minimized
+            io.emit('employee_stopped_tracking', {
+                ...data,
+                serverTimestamp: new Date().toISOString()
+            });
+        });
+
+        // App Minimized / Screen Locked -> Broadcast Last Known Location Spot
+        socket.on('employee_app_minimized', (data) => {
+            if (!data || !data.userId) return;
+            io.emit('employee_minimized', {
+                ...data,
+                serverTimestamp: new Date().toISOString()
+            });
+        });
+
+        // App Resumed / Returned to Screen -> Broadcast Active Tracking Resumed
+        socket.on('employee_app_resumed', (data) => {
+            if (!data || !data.userId) return;
+            io.emit('employee_resumed', {
+                ...data,
+                serverTimestamp: new Date().toISOString()
+            });
+        });
+
         socket.on('disconnect', () => {
-            console.log(`🔌 MD Dashboard disconnected: ${socket.id}`);
+            console.log(`🔌 Client disconnected: ${socket.id}`);
+            // Server-Side Fail-Safe: If user swipes away app from Recent Apps,
+            // the server immediately alerts the MD map with their last known location!
+            if (socket.userId) {
+                io.emit('employee_minimized', {
+                    userId: socket.userId,
+                    name: socket.userName,
+                    lat: socket.lastLat,
+                    lng: socket.lastLng,
+                    locationName: socket.lastLocation || 'Last Known Spot',
+                    timestamp: new Date().toISOString()
+                });
+            }
         });
     });
 

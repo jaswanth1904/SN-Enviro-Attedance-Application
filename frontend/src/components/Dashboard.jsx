@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -105,7 +105,10 @@ const CustomSelect = ({ label, value, options, onChange, disabled }) => {
 const Dashboard = () => {
     const { user, logout, updateUser, updateProfile } = useAuth();
     const navigate = useNavigate();
-    const { coords, city, fullAddress, error: geoError, refresh: refreshGeo, loading: geoLoading } = useGeolocation();
+    const { coords, city, townOrCity, fullAddress, isHeadOffice, error: geoError, refresh: refreshGeo, loading: geoLoading } = useGeolocation();
+    const socketRef = useRef(null);
+    const [liveMovementStatus, setLiveMovementStatus] = useState({ isMoving: false, speed: 0 });
+    const lastBroadcastRef = useRef({ coords: null, time: 0 });
     const [attendance, setAttendance] = useState(() => {
         try {
             const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -279,8 +282,9 @@ const Dashboard = () => {
     useEffect(() => {
         fetchAttendance();
 
-        // Real-Time Socket Connection for immediate attendance synchronization
+        // Real-Time Socket Connection for immediate attendance synchronization & movement streaming
         const socket = io(getSocketUrl());
+        socketRef.current = socket;
 
         socket.on('attendance_logged', (loggedRecord) => {
             const currentUserId = user?._id || user?.id;
@@ -301,8 +305,138 @@ const Dashboard = () => {
 
         return () => {
             socket.disconnect();
+            socketRef.current = null;
         };
     }, [user]);
+
+    // Real-Time Active-Shift Geolocation Watcher (Streams movement > 50m to MD Live Map)
+    useEffect(() => {
+        if (!isCheckedIn || !user) {
+            // Shift is NOT active (Checked-out or before login) -> Stop tracking completely
+            if (socketRef.current && (user?._id || user?.id)) {
+                socketRef.current.emit('employee_tracking_stopped', {
+                    userId: user._id || user.id,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            setLiveMovementStatus({ isMoving: false, speed: 0 });
+            return;
+        }
+
+        if (!navigator.geolocation) return;
+
+        const calculateDistanceMeters = (lat1, lon1, lat2, lon2) => {
+            const R = 6371e3;
+            const rad = Math.PI / 180;
+            const dLat = (lat2 - lat1) * rad;
+            const dLon = (lon2 - lon1) * rad;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        };
+
+        const watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const currentLat = pos.coords.latitude;
+                const currentLng = pos.coords.longitude;
+                const speedKmh = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
+                const now = Date.now();
+
+                const last = lastBroadcastRef.current;
+                let shouldEmit = false;
+                let isMoving = false;
+
+                if (!last.coords) {
+                    shouldEmit = true;
+                    isMoving = false;
+                } else {
+                    const dist = calculateDistanceMeters(last.coords.lat, last.coords.lng, currentLat, currentLng);
+                    if (dist >= 50) {
+                        shouldEmit = true;
+                        isMoving = true;
+                    } else if (now - last.time >= 45000) {
+                        // Stationary heartbeat every 45s
+                        shouldEmit = true;
+                        isMoving = false;
+                    }
+                }
+
+                if (shouldEmit) {
+                    lastBroadcastRef.current = { coords: { lat: currentLat, lng: currentLng }, time: now };
+                    setLiveMovementStatus({ isMoving, speed: speedKmh });
+
+                    if (socketRef.current) {
+                        socketRef.current.emit('employee_location_update', {
+                            userId: user?._id || user?.id,
+                            name: user?.name,
+                            role: user?.role,
+                            lat: currentLat,
+                            lng: currentLng,
+                            locationName: isHeadOffice ? 'SN Enviro Head Office (Hyderabad)' : (city || fullAddress || 'Live Tracker'),
+                            isMoving: isMoving,
+                            speed: isMoving ? (speedKmh > 0 ? `${speedKmh} km/h` : 'Moving (>50m)') : 'Stationary',
+                            status: 'on-time',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                }
+            },
+            (err) => console.warn('Live location watch warning:', err.message),
+            {
+                enableHighAccuracy: true,
+                maximumAge: 10000,
+                timeout: 15000
+            }
+        );
+
+        return () => {
+            navigator.geolocation.clearWatch(watchId);
+            if (socketRef.current && (user?._id || user?.id)) {
+                socketRef.current.emit('employee_tracking_stopped', {
+                    userId: user._id || user.id,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        };
+    }, [isCheckedIn, user, isHeadOffice, city, fullAddress]);
+
+    // Handle App Minimizing / Tab Switching -> Broadcast Last Known Location Spot to MD Map
+    useEffect(() => {
+        if (!isCheckedIn || !user) return;
+
+        const handleVisibilityChange = () => {
+            const last = lastBroadcastRef.current?.coords || (coords ? { lat: coords.latitude, lng: coords.longitude } : null);
+            if (document.visibilityState === 'hidden') {
+                if (socketRef.current && (user?._id || user?.id) && last) {
+                    socketRef.current.emit('employee_app_minimized', {
+                        userId: user._id || user.id,
+                        name: user.name,
+                        lat: last.lat,
+                        lng: last.lng,
+                        locationName: isHeadOffice ? 'SN Enviro Head Office (Hyderabad)' : (city || fullAddress || 'Last Known Location'),
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } else if (document.visibilityState === 'visible') {
+                if (socketRef.current && (user?._id || user?.id)) {
+                    socketRef.current.emit('employee_app_resumed', {
+                        userId: user._id || user.id,
+                        name: user.name,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pagehide', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pagehide', handleVisibilityChange);
+        };
+    }, [isCheckedIn, user, coords, isHeadOffice, city, fullAddress]);
 
     const fetchAttendance = async () => {
         // Don't set loading on BG syncs to avoid flickering
@@ -669,12 +803,43 @@ const Dashboard = () => {
                                         </div>
                                     ) : coords ? (
                                         <>
-                                            <h4 className="text-base sm:text-lg font-bold text-slate-800 mb-1 leading-snug">{city || 'Location Active'}</h4>
-                                            <div className="flex items-center justify-center flex-wrap gap-2 text-[10px] sm:text-[11px] text-slate-500 font-mono bg-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-sm border border-slate-100 mt-2 mb-2 sm:mb-3">
-                                                <span>Lat: {coords.latitude.toFixed(4)}</span>
-                                                <div className="w-1 h-1 rounded-full bg-slate-300" />
-                                                <span>Lng: {coords.longitude.toFixed(4)}</span>
+                                            <h4 className="text-base sm:text-lg font-bold text-slate-800 mb-1 leading-snug flex items-center justify-center gap-1.5 text-center">
+                                                {isHeadOffice ? (
+                                                    <>
+                                                        <span className="text-blue-600">🏢</span> SN Enviro Head Office
+                                                    </>
+                                                ) : (
+                                                    city || 'Location Active'
+                                                )}
+                                            </h4>
+
+                                            {/* Clean Town / City / Corporate Headquarters Badge */}
+                                            <div className="flex items-center justify-center flex-wrap gap-1.5 text-[11px] sm:text-xs text-slate-600 font-medium bg-white px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-sm border border-slate-200 mt-1 mb-2 sm:mb-2.5 max-w-full text-center">
+                                                <MapPin size={13} className="text-blue-500 shrink-0" />
+                                                <span className="font-semibold text-slate-700 truncate">
+                                                    {isHeadOffice ? 'Secunderabad, Hyderabad, TS' : (fullAddress || city || 'Verified Location')}
+                                                </span>
                                             </div>
+
+                                            {/* Real-time Movement Status indicator during active shift */}
+                                            {isCheckedIn && (
+                                                <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold mb-1.5 transition-all">
+                                                    {liveMovementStatus.isMoving ? (
+                                                        <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-xs">
+                                                            <span className="relative flex h-2 w-2">
+                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                            </span>
+                                                            ⚡ Moving ({liveMovementStatus.speed > 0 ? `${liveMovementStatus.speed} km/h` : 'Transit >50m'})
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-xs">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                            Stationary ({isHeadOffice ? 'Head Office' : (city || 'Office/Remote')})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                             
                                             {/* Today's Login Time Indicator */}
                                             {dailyRecords[0] && new Date(dailyRecords[0].earliestLogin).toDateString() === new Date().toDateString() && (
