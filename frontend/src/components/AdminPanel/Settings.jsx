@@ -62,7 +62,7 @@ const Settings = () => {
                     <div>
                         <label className="flex items-center gap-3 cursor-pointer">
                             <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-slate-300 text-brand-primary focus:ring-brand-primary" />
-                            <span className="font-bold text-slate-700">Allow Service Engineers to view full project details</span>
+                            <span className="font-bold text-slate-700">Allow Field Application Engineers to view full project details</span>
                         </label>
                     </div>
                 </div>

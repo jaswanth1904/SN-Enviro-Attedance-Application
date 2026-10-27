@@ -242,7 +242,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                                     <option value="" disabled>Select Designation / Role</option>
                                                     <option value="Software Developer">Software Developer</option>
                                                     <option value="Embedded Engineer">Embedded Engineer</option>
-                                                    <option value="Service Engineer">Service Engineer</option>
+                                                    <option value="Field Application Engineer">Field Application Engineer</option>
                                                     <option value="Admin">Admin</option>
                                                 </select>
                                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">

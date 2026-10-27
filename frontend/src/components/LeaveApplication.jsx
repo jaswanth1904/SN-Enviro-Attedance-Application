@@ -31,7 +31,7 @@ const LeaveApplication = () => {
         reason: ''
     });
 
-    const isTechRole = ['Software Developer', 'Embedded Engineer', 'Application Engineer', 'Office Employee'].includes(user?.role);
+    const isTechRole = ['Software Developer', 'Embedded Engineer', 'Field Application Engineer', 'Service Engineer', 'Application Engineer', 'Office Employee'].includes(user?.role);
 
     const baseLeaveTypes = [
         { id: 'Sick Leave', label: 'Sick Leave', icon: Clock, desc: 'Medical emergency or illness' },
