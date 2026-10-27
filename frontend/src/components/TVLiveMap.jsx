@@ -132,26 +132,32 @@ const createPlantIcon = (isActive, isDark) => {
 };
 
 // Engineer Icon (Including WFH employees)
-const createGlowingIcon = (role, isDark) => {
+const createGlowingIcon = (role, isDark, count = 1) => {
     // Make all active engineers a beautiful glowing emerald green to match the UI perfectly
     let color = '#10b981'; 
+    const size = count > 1 ? 28 : 22;
 
     return L.divIcon({
         className: 'custom-div-icon',
         html: `
             <div style="
-                width: 22px; 
-                height: 22px; 
+                width: ${size}px; 
+                height: ${size}px; 
                 background-color: ${color}; 
                 border-radius: 50%; 
                 border: 2px solid ${isDark ? '#0f172a' : '#ffffff'};
-                box-shadow: 0 0 15px ${color};
+                box-shadow: 0 0 ${count > 1 ? '18px' : '15px'} ${color};
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 animation: gentle-pulse 2s infinite;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-weight: 900;
+                font-size: ${count > 1 ? '12px' : '0px'};
+                color: #ffffff;
+                line-height: 1;
             ">
-                <div style="width: 6px; height: 6px; background: ${isDark ? '#0f172a' : '#ffffff'}; border-radius: 50%;"></div>
+                ${count > 1 ? count : `<div style="width: 6px; height: 6px; background: ${isDark ? '#0f172a' : '#ffffff'}; border-radius: 50%;"></div>`}
             </div>
             <style>
                 @keyframes gentle-pulse {
@@ -161,8 +167,8 @@ const createGlowingIcon = (role, isDark) => {
                 }
             </style>
         `,
-        iconSize: [22, 22],
-        iconAnchor: [11, 11]
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2]
     });
 };
 
@@ -362,63 +368,78 @@ const TVLiveMap = () => {
                         );
                     })}
 
-                    {/* Render Engineers with radial dispersion for overlapping locations */}
+                    {/* Render Engineers with Smart Multi-Personnel Location Clustering */}
                     {(() => {
-                        const coordBuckets = {};
-                        return engineers.map((engineer) => {
-                            if (!engineer.position || !engineer.position[0]) return null;
+                        const clusters = {};
+                        engineers.forEach(engineer => {
+                            if (!engineer.position || !engineer.position[0]) return;
                             const lat = engineer.position[0];
                             const lng = engineer.position[1];
-                            const key = `${Number(lat).toFixed(4)}_${Number(lng).toFixed(4)}`;
-                            coordBuckets[key] = (coordBuckets[key] || 0) + 1;
-                            const count = coordBuckets[key];
-
-                            let dLat = lat;
-                            let dLng = lng;
-                            if (count > 1) {
-                                const angle = ((count - 1) * (2 * Math.PI)) / 6;
-                                const radius = 0.00045; // ~45 meters offset
-                                dLat += radius * Math.cos(angle);
-                                dLng += radius * Math.sin(angle);
+                            // Group by ~1km radius (2 decimal places)
+                            const key = `${Number(lat).toFixed(2)}_${Number(lng).toFixed(2)}`;
+                            if (!clusters[key]) {
+                                clusters[key] = {
+                                    key,
+                                    position: [lat, lng],
+                                    site: engineer.site,
+                                    engineers: []
+                                };
                             }
+                            clusters[key].engineers.push(engineer);
+                        });
+
+                        return Object.values(clusters).map((cluster) => {
+                            const count = cluster.engineers.length;
+                            const primaryRole = cluster.engineers[0].role;
 
                             return (
                                 <Marker 
-                                    key={engineer.id} 
-                                    position={[dLat, dLng]}
-                                    icon={createGlowingIcon(engineer.role, isDark)}
+                                    key={cluster.key} 
+                                    position={cluster.position}
+                                    icon={createGlowingIcon(primaryRole, isDark, count)}
                                     eventHandlers={{ mouseover: (e) => e.target.openPopup(), mouseout: (e) => e.target.closePopup() }}
                                 >
-                            <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false} closeButton={false}>
-                                <div className="flex flex-col gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl text-white shadow-lg ${isDark ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'}`}>
-                                            {engineer.name.charAt(0).toUpperCase()}
+                                    <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false} closeButton={false}>
+                                        <div className="flex flex-col gap-3 min-w-[260px] max-w-[340px]">
+                                            {/* Header */}
+                                            <div className={`pb-2 border-b flex items-center justify-between ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                                                <p className="font-semibold text-xs leading-snug flex items-center gap-1.5 opacity-90 truncate m-0">
+                                                    <span className="text-brand-primary">•</span>
+                                                    <span className="truncate">{cluster.site}</span>
+                                                </p>
+                                                <div className="flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                                    <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">
+                                                        {count > 1 ? `${count} Active` : 'Live'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Engineers List */}
+                                            <div className="flex flex-col gap-2.5 max-h-[240px] overflow-y-auto">
+                                                {cluster.engineers.map((eng, idx) => (
+                                                    <div key={eng.id || idx} className={`flex items-center justify-between gap-3 p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}>
+                                                        <div className="flex items-center gap-2.5 min-w-0">
+                                                            <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm text-white shrink-0 shadow-md ${isDark ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'}`}>
+                                                                {eng.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <p className="font-bold text-sm m-0 leading-tight truncate">{eng.name}</p>
+                                                                <p className="text-[9px] font-bold uppercase tracking-wider text-brand-primary truncate m-0">{eng.role}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="shrink-0 text-right">
+                                                            <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 opacity-70 m-0">
+                                                                <Clock size={11} /> {eng.time}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-black text-lg m-0 leading-none tracking-tight">{engineer.name}</p>
-                                            <p className="text-[10px] font-bold uppercase tracking-widest mt-1 text-brand-primary">{engineer.role}</p>
-                                        </div>
-                                    </div>
-                                    <div className={`mt-1 pt-3 border-t ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
-                                        <p className="font-semibold text-xs leading-snug flex items-start gap-2 opacity-90">
-                                            <span className="mt-0.5 text-brand-primary">•</span>
-                                            <span>{engineer.site}</span>
-                                        </p>
-                                    </div>
-                                    <div className="mt-1 flex items-center justify-between">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 opacity-70">
-                                            <Clock size={12} /> {engineer.time}
-                                        </p>
-                                        <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-full">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                            <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Live</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Popup>
-                        </Marker>
-                        );
+                                    </Popup>
+                                </Marker>
+                            );
                         });
                     })()}
                 </MapContainer>

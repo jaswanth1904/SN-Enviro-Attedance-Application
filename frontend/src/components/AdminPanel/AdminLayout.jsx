@@ -101,7 +101,6 @@ const AdminLayout = () => {
         { to: '/admin/overview', icon: LayoutDashboard, label: 'Overview' },
         { to: '/admin/employees', icon: Users, label: 'Employee Management' },
         { to: '/admin/attendance', icon: CalendarCheck, label: 'Attendance Management' },
-        { to: '/admin/live-tracking', icon: Map, label: 'Live Field Tracking' },
         { to: '/admin/announcements', icon: Megaphone, label: 'MD Announcements' },
         { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
         { 

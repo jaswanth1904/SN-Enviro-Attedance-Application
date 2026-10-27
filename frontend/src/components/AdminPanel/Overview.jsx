@@ -81,8 +81,8 @@ const Overview = () => {
                 >
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-slate-800 tracking-wide">Recent Field Activity</h3>
-                        <Link to="/admin/live-tracking" className="text-sm font-bold text-brand-primary flex items-center gap-2 hover:underline">
-                            View Live Map <ArrowRight size={16} />
+                        <Link to="/tv-map" target="_blank" className="text-sm font-bold text-brand-primary flex items-center gap-2 hover:underline">
+                            Open MD Live TV Map <ArrowRight size={16} />
                         </Link>
                     </div>
                     <div className="space-y-4">
