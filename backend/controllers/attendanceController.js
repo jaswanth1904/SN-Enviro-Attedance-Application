@@ -576,10 +576,25 @@ exports.getReports = async (req, res, next) => {
             r.user.email !== 'md@snenviro.in'
         );
 
+        // Ensure any attendance logged after 10:30 AM IST is accurately marked as Late
+        const evaluatedReports = employeeReports.map(r => {
+            const time = new Date(r.timestamp);
+            const istTime = new Date(time.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+            const hours = istTime.getHours();
+            const minutes = istTime.getMinutes();
+            const isLate = hours > 10 || (hours === 10 && minutes >= 30);
+            
+            const obj = r.toObject ? r.toObject() : { ...r };
+            if (isLate || obj.status === 'Late') {
+                obj.status = 'Late';
+            }
+            return obj;
+        });
+
         res.status(200).json({
             success: true,
-            count: employeeReports.length,
-            data: employeeReports
+            count: evaluatedReports.length,
+            data: evaluatedReports
         });
     } catch (error) {
         next(error);
@@ -601,10 +616,19 @@ exports.getLiveReports = async (req, res, next) => {
             .populate('site', 'name')
             .sort('-timestamp');
 
+        // Exclude Managing Director / Admin from TV Map
+        const cleanReports = reports.filter(r => 
+            r.user && 
+            r.user.role !== 'Admin' && 
+            r.user.role !== 'SuperAdmin' && 
+            r.user.name !== 'Managing Director' &&
+            r.user.email !== 'md@snenviro.in'
+        );
+
         res.status(200).json({
             success: true,
-            count: reports.length,
-            data: reports
+            count: cleanReports.length,
+            data: cleanReports
         });
     } catch (error) {
         next(error);

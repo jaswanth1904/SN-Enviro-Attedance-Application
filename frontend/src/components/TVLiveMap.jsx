@@ -207,7 +207,7 @@ const TVLiveMap = () => {
                         role: a.user.role,
                         position: [lat, lng],
                         site: formatLocationName(a.locationName, a.site?.name, lat, lng),
-                        time: new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        time: new Date(a.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }),
                         selfie: a.selfieUrl
                     };
                 });
@@ -241,7 +241,7 @@ const TVLiveMap = () => {
                     role: newLog.user.role,
                     position: [lat, lng],
                     site: formatLocationName(newLog.locationName, newLog.site?.name, lat, lng),
-                    time: new Date(newLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    time: new Date(newLog.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true })
                 };
                 setEngineers(prev => {
                     const filtered = prev.filter(e => e.name !== newMarker.name);
@@ -362,14 +362,33 @@ const TVLiveMap = () => {
                         );
                     })}
 
-                    {/* Render Engineers */}
-                    {engineers.map((engineer) => (
-                        <Marker 
-                            key={engineer.id} 
-                            position={engineer.position}
-                            icon={createGlowingIcon(engineer.role, isDark)}
-                            eventHandlers={{ mouseover: (e) => e.target.openPopup(), mouseout: (e) => e.target.closePopup() }}
-                        >
+                    {/* Render Engineers with radial dispersion for overlapping locations */}
+                    {(() => {
+                        const coordBuckets = {};
+                        return engineers.map((engineer) => {
+                            if (!engineer.position || !engineer.position[0]) return null;
+                            const lat = engineer.position[0];
+                            const lng = engineer.position[1];
+                            const key = `${Number(lat).toFixed(4)}_${Number(lng).toFixed(4)}`;
+                            coordBuckets[key] = (coordBuckets[key] || 0) + 1;
+                            const count = coordBuckets[key];
+
+                            let dLat = lat;
+                            let dLng = lng;
+                            if (count > 1) {
+                                const angle = ((count - 1) * (2 * Math.PI)) / 6;
+                                const radius = 0.00045; // ~45 meters offset
+                                dLat += radius * Math.cos(angle);
+                                dLng += radius * Math.sin(angle);
+                            }
+
+                            return (
+                                <Marker 
+                                    key={engineer.id} 
+                                    position={[dLat, dLng]}
+                                    icon={createGlowingIcon(engineer.role, isDark)}
+                                    eventHandlers={{ mouseover: (e) => e.target.openPopup(), mouseout: (e) => e.target.closePopup() }}
+                                >
                             <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false} closeButton={false}>
                                 <div className="flex flex-col gap-3">
                                     <div className="flex items-center gap-3">
@@ -399,7 +418,9 @@ const TVLiveMap = () => {
                                 </div>
                             </Popup>
                         </Marker>
-                    ))}
+                        );
+                        });
+                    })()}
                 </MapContainer>
             </div>
             

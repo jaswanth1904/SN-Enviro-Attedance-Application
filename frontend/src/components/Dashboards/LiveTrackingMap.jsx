@@ -18,6 +18,17 @@ const MapRefresher = () => {
   return null;
 };
 
+// Auto fly-to when employee card is selected
+const MapFlyTo = ({ target }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (target && target.lat && target.lng) {
+      map.flyTo([target.displayLat || target.lat, target.displayLng || target.lng], 14, { duration: 1.2 });
+    }
+  }, [target, map]);
+  return null;
+};
+
 // Custom Markers for different statuses
 const createCustomIcon = (color) => {
   return L.divIcon({
@@ -56,6 +67,7 @@ const LiveTrackingMap = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [allEngineers, setAllEngineers] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [selectedEmp, setSelectedEmp] = useState(null);
 
   useEffect(() => {
     const fetchLive = async () => {
@@ -75,7 +87,10 @@ const LiveTrackingMap = () => {
     
     socket.on('attendance_logged', (newAtt) => {
       const time = new Date(newAtt.timestamp);
-      const isLate = (time.getHours() > 10 || (time.getHours() === 10 && time.getMinutes() >= 30));
+      const istTime = new Date(time.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const hours = istTime.getHours();
+      const minutes = istTime.getMinutes();
+      const isLate = newAtt.status === 'Late' || hours > 10 || (hours === 10 && minutes >= 30);
       
       const mapItem = {
         id: newAtt._id,
@@ -87,7 +102,7 @@ const LiveTrackingMap = () => {
         lng: newAtt.location?.coordinates[0] || 78.9629,
         status: isLate ? 'late' : 'on-time',
         isMoving: false,
-        time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        time: time.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true })
       };
       
       setAllEngineers(prev => [mapItem, ...prev.filter(e => e.id !== mapItem.id && e.userId !== mapItem.userId)]);
@@ -197,6 +212,38 @@ const LiveTrackingMap = () => {
     else setFilteredData(allEngineers.filter(e => e.status === activeFilter));
   }, [activeFilter, allEngineers]);
 
+  // Disperse overlapping markers so engineers at the same site/office are both visible
+  const dispersedEngineers = useMemo(() => {
+    const coordBuckets = {};
+    return filteredData.map((emp) => {
+      const latNum = Number(emp.lat) || 20.5937;
+      const lngNum = Number(emp.lng) || 78.9629;
+      const bucketKey = `${latNum.toFixed(4)}_${lngNum.toFixed(4)}`;
+      if (!coordBuckets[bucketKey]) {
+        coordBuckets[bucketKey] = 0;
+      }
+      const indexInBucket = coordBuckets[bucketKey];
+      coordBuckets[bucketKey] += 1;
+
+      let displayLat = latNum;
+      let displayLng = lngNum;
+
+      if (indexInBucket > 0) {
+        // Disperse overlapping pins in a neat small ring (~45m)
+        const angle = (indexInBucket * (2 * Math.PI)) / 6;
+        const radius = 0.00045;
+        displayLat += radius * Math.cos(angle);
+        displayLng += radius * Math.sin(angle);
+      }
+
+      return {
+        ...emp,
+        displayLat,
+        displayLng
+      };
+    });
+  }, [filteredData]);
+
   const getIcon = (emp) => {
     if (emp.isMinimized) return iconLate; // Amber/Red alert for minimized
     if (emp.isMoving) return iconMoving;
@@ -242,19 +289,27 @@ const LiveTrackingMap = () => {
             onClick={() => setActiveFilter('on-time')}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all ${activeFilter === 'on-time' ? 'bg-emerald-500 text-white shadow-md' : 'bg-white border border-slate-200 text-emerald-600 hover:bg-emerald-50'}`}
           >
-            On Time
+            On Time ({allEngineers.filter(e => e.status !== 'late').length})
           </button>
           <button 
             onClick={() => setActiveFilter('late')}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all ${activeFilter === 'late' ? 'bg-red-500 text-white shadow-md' : 'bg-white border border-slate-200 text-red-500 hover:bg-red-50'}`}
           >
-            Escalated
+            Escalated ({allEngineers.filter(e => e.status === 'late').length})
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
-          {filteredData.map(emp => (
-            <div key={emp.id} className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group">
+          {dispersedEngineers.map(emp => (
+            <div 
+              key={emp.id} 
+              onClick={() => setSelectedEmp(emp)}
+              className={`p-4 rounded-xl bg-white border transition-all cursor-pointer group ${
+                selectedEmp?.id === emp.id 
+                  ? 'border-blue-500 shadow-md ring-2 ring-blue-500/20' 
+                  : 'border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md'
+              }`}
+            >
               <div className="flex justify-between items-start mb-1">
                 <h4 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors flex items-center gap-1.5">
                   {emp.name}
@@ -297,14 +352,15 @@ const LiveTrackingMap = () => {
           zoomControl={false}
         >
           <MapRefresher />
+          <MapFlyTo target={selectedEmp} />
           {/* Default OSM basemap */}
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
-          {filteredData.map(emp => (
-            <Marker key={emp.id} position={[emp.lat, emp.lng]} icon={getIcon(emp)}>
+          {dispersedEngineers.map(emp => (
+            <Marker key={emp.id} position={[emp.displayLat, emp.displayLng]} icon={getIcon(emp)}>
               <Popup className="futuristic-popup">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl min-w-[220px]">
                   <div className="font-bold text-lg text-slate-900 mb-0.5 flex items-center justify-between">

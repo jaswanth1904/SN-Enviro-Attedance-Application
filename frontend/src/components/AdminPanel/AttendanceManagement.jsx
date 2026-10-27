@@ -140,16 +140,27 @@ const AttendanceManagement = () => {
         });
     }, [attendanceData, todayStr]);
 
+    // Reliable check if a record was checked in after 10:30 AM IST cutoff
+    const isRecordLate = (record) => {
+        if (!record || !record.timestamp) return false;
+        if (record.status === 'Late') return true;
+        const time = new Date(record.timestamp);
+        const istTime = new Date(time.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const hours = istTime.getHours();
+        const minutes = istTime.getMinutes();
+        return hours > 10 || (hours === 10 && minutes >= 30);
+    };
+
     const presentTodayCount = useMemo(() => {
         const presentUserIds = new Set(
-            todaysLogs.filter(l => l.status === 'Present').map(l => l.user?._id || l.user?.id)
+            todaysLogs.filter(l => !isRecordLate(l)).map(l => l.user?._id || l.user?.id)
         );
         return presentUserIds.size;
     }, [todaysLogs]);
 
     const lateTodayCount = useMemo(() => {
         const lateUserIds = new Set(
-            todaysLogs.filter(l => l.status === 'Late').map(l => l.user?._id || l.user?.id)
+            todaysLogs.filter(l => isRecordLate(l)).map(l => l.user?._id || l.user?.id)
         );
         return lateUserIds.size;
     }, [todaysLogs]);
@@ -177,8 +188,9 @@ const AttendanceManagement = () => {
 
             // Status filter
             let matchesStatus = true;
-            if (statusFilter === 'Present') matchesStatus = record.status === 'Present';
-            else if (statusFilter === 'Late') matchesStatus = record.status === 'Late';
+            const isLate = isRecordLate(record);
+            if (statusFilter === 'Present') matchesStatus = !isLate;
+            else if (statusFilter === 'Late') matchesStatus = isLate;
             else if (statusFilter === 'Absent') matchesStatus = false; // Absent shows dedicated list
 
             // Date filter
@@ -543,10 +555,15 @@ const AttendanceManagement = () => {
 
                                                         {/* Status Badge */}
                                                         <td className="p-4">
-                                                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider ${getStatusStyle(record.status || 'Present')}`}>
-                                                                {getStatusIcon(record.status || 'Present')}
-                                                                <span>{record.status || 'Present'}</span>
-                                                            </div>
+                                                            {(() => {
+                                                                const recordDisplayStatus = isRecordLate(record) ? 'Late' : (record.status || 'Present');
+                                                                return (
+                                                                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider ${getStatusStyle(recordDisplayStatus)}`}>
+                                                                        {getStatusIcon(recordDisplayStatus)}
+                                                                        <span>{recordDisplayStatus}</span>
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </td>
 
                                                         {/* Actions */}

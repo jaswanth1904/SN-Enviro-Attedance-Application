@@ -143,20 +143,33 @@ exports.getLiveTracking = async (req, res) => {
 
         const todaysAttendance = await Attendance.find({
             timestamp: { $gte: today }
-        }).populate('user', 'name role department site');
+        }).populate('user', 'name role department site email');
 
-        const formattedData = todaysAttendance.map(att => {
+        // Exclude Managing Director / Admin from live tracking map
+        const employeeAttendance = todaysAttendance.filter(att => 
+            att.user && 
+            att.user.role !== 'Admin' && 
+            att.user.role !== 'SuperAdmin' && 
+            att.user.name !== 'Managing Director' &&
+            att.user.email !== 'md@snenviro.in'
+        );
+
+        const formattedData = employeeAttendance.map(att => {
             const time = new Date(att.timestamp);
-            const isLate = (time.getHours() > 10 || (time.getHours() === 10 && time.getMinutes() >= 30));
+            const istTime = new Date(time.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+            const hours = istTime.getHours();
+            const minutes = istTime.getMinutes();
+            const isLate = att.status === 'Late' || hours > 10 || (hours === 10 && minutes >= 30);
             return {
                 id: att._id,
+                userId: att.user?._id || att.user?.id,
                 name: att.user?.name || 'Unknown',
                 role: att.user?.role || 'Staff',
                 city: att.locationName || 'Location Logged',
                 lat: att.location?.coordinates[1] || 20.5937,
                 lng: att.location?.coordinates[0] || 78.9629,
                 status: isLate ? 'late' : 'on-time',
-                time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                time: time.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true })
             };
         });
 
