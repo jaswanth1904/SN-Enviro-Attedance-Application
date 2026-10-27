@@ -96,6 +96,14 @@ exports.recordAttendance = async (req, res, next) => {
             return res.status(200).json({ success: true, address: actualLocationName });
         }
 
+        // Compute IST check-in time for Late status determination (Cutoff: 10:30 AM IST)
+        const checkInTime = new Date(timestamp || Date.now());
+        const istDateStr = checkInTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const istCheckIn = new Date(checkInTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const istHours = istCheckIn.getHours();
+        const istMinutes = istCheckIn.getMinutes();
+        const isLateCheckIn = istHours > 10 || (istHours === 10 && istMinutes >= 30);
+
         const attendanceData = {
             user: req.user.id,
             location: {
@@ -103,7 +111,7 @@ exports.recordAttendance = async (req, res, next) => {
                 coordinates: [longitude, latitude]
             },
             selfieUrl,
-            status: 'Present',
+            status: isLateCheckIn ? 'Late' : 'Present',
             timestamp: timestamp || Date.now()
         };
 
@@ -119,8 +127,6 @@ exports.recordAttendance = async (req, res, next) => {
         }
 
         // Concurrency & Duplicate Check-In Guard (Idempotency under high load)
-        const checkInTime = new Date(timestamp || Date.now());
-        const istDateStr = checkInTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
         const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
 
@@ -265,6 +271,14 @@ exports.recordImmediateAttendance = async (req, res, next) => {
         // Note: In production, this should be the full URL. For local dev, we use the path.
         const selfieUrl = `/uploads/${req.file.filename}`;
 
+        // Compute IST check-in time for Late status determination (Cutoff: 10:30 AM IST)
+        const checkInTime = new Date(timestamp || Date.now());
+        const istDateStr = checkInTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const istCheckIn = new Date(checkInTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const istHours = istCheckIn.getHours();
+        const istMinutes = istCheckIn.getMinutes();
+        const isLateCheckIn = istHours > 10 || (istHours === 10 && istMinutes >= 30);
+
         const attendanceData = {
             user: req.user.id,
             location: {
@@ -272,7 +286,7 @@ exports.recordImmediateAttendance = async (req, res, next) => {
                 coordinates: [parseFloat(longitude), parseFloat(latitude)]
             },
             selfieUrl,
-            status: 'Present',
+            status: isLateCheckIn ? 'Late' : 'Present',
             timestamp: timestamp || Date.now()
         };
 
@@ -285,8 +299,6 @@ exports.recordImmediateAttendance = async (req, res, next) => {
         }
 
         // Concurrency & Duplicate Check-In Guard (Idempotency under high load)
-        const checkInTime = new Date(timestamp || Date.now());
-        const istDateStr = checkInTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
         const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
 
@@ -551,14 +563,23 @@ exports.getMyAttendance = async (req, res, next) => {
 exports.getReports = async (req, res, next) => {
     try {
         const reports = await Attendance.find()
-            .populate('user', 'name email')
+            .populate('user', 'name email role department')
             .populate('site', 'name')
             .sort('-timestamp');
 
+        // Exclude Managing Director / Admin accounts from employee attendance logs
+        const employeeReports = reports.filter(r => 
+            r.user && 
+            r.user.name !== 'Managing Director' && 
+            r.user.role !== 'Admin' && 
+            r.user.role !== 'SuperAdmin' &&
+            r.user.email !== 'md@snenviro.in'
+        );
+
         res.status(200).json({
             success: true,
-            count: reports.length,
-            data: reports
+            count: employeeReports.length,
+            data: employeeReports
         });
     } catch (error) {
         next(error);

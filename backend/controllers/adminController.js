@@ -12,13 +12,25 @@ exports.getOverviewStats = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // 1. Total Employees
-        const totalEmployees = await User.countDocuments();
+        // 1. Total Employees (Excluding MD / Admin)
+        const totalEmployees = await User.countDocuments({ 
+            role: { $nin: ['Admin', 'SuperAdmin'] },
+            name: { $ne: 'Managing Director' },
+            email: { $ne: 'md@snenviro.in' }
+        });
 
-        // 2. Today's Attendance
-        const todaysAttendance = await Attendance.find({
+        // 2. Today's Attendance (Excluding MD / Admin)
+        const rawTodaysAttendance = await Attendance.find({
             timestamp: { $gte: today }
-        }).populate('user', 'name role department site');
+        }).populate('user', 'name role department site email');
+
+        const todaysAttendance = rawTodaysAttendance.filter(a => 
+            a.user && 
+            a.user.role !== 'Admin' && 
+            a.user.role !== 'SuperAdmin' &&
+            a.user.name !== 'Managing Director' &&
+            a.user.email !== 'md@snenviro.in'
+        );
 
         const presentToday = new Set(todaysAttendance.map(a => a.user?._id?.toString())).size;
         
@@ -41,8 +53,12 @@ exports.getOverviewStats = async (req, res) => {
         const absentToday = Math.max(0, totalEmployees - presentToday - onLeaveToday);
         
         const lateLogins = todaysAttendance.filter(a => {
+            if (a.status === 'Late') return true;
             const time = new Date(a.timestamp);
-            return time.getHours() >= 9 && time.getMinutes() > 30; // Assuming 9:30 is late
+            const istTime = new Date(time.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+            const hours = istTime.getHours();
+            const minutes = istTime.getMinutes();
+            return hours > 10 || (hours === 10 && minutes >= 30);
         }).length;
 
         const activeSites = await Site.countDocuments();
