@@ -277,155 +277,117 @@ const AttendanceManagement = () => {
 
     return (
         <div className="space-y-6">
-            {/* Top Header & Real-Time Connection Bar - Executive Command Center Style */}
-            <div className="relative overflow-hidden bg-white/90 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)]">
-                {/* Subtle Decorative Ambient Glow */}
-                <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-500/5 via-indigo-500/5 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+            {/* Top Header & Real-Time Connection Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <div>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-2xl font-black text-[#22223b] tracking-tight">Attendance Management</h1>
+                        {isLiveConnected ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                Live Telemetry Stream
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
+                                Connecting Stream...
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-slate-500 font-medium text-sm">Monitor daily logs, correct anomalies, and track time.</p>
+                </div>
 
-                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
-                    <div>
-                        <div className="flex flex-wrap items-center gap-3 mb-1.5">
-                            <h1 className="text-2xl md:text-3xl font-black text-[#1e293b] tracking-tight">
-                                Attendance Management
-                            </h1>
-                            {isLiveConnected ? (
-                                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border border-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.12)]">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                    </span>
-                                    Live Telemetry Stream
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
-                                    <RefreshCw size={12} className="animate-spin text-slate-400" />
-                                    Connecting Stream...
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-slate-500 font-medium text-xs md:text-sm">
-                            Monitor daily logs, correct anomalies, and track personnel time in real-time.
+                <div className="flex items-center gap-3">
+                    <div className="text-right">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Station Clock</p>
+                        <p className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-1.5 justify-end">
+                            <Clock size={16} className="text-brand-primary" />
+                            {currentTime} <span className="text-[11px] text-slate-400 font-bold">IST</span>
                         </p>
                     </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                        {/* High-Precision Live Station Clock HUD */}
-                        <div className="bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-lg shadow-slate-900/10 border border-slate-800 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-center text-emerald-400">
-                                <Clock size={16} />
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Station Clock</p>
-                                <p className="text-sm font-mono font-black text-emerald-400 tracking-wider flex items-center gap-1.5 justify-end m-0">
-                                    {currentTime}
-                                    <span className="text-[10px] text-slate-400 font-bold bg-slate-800 px-1.5 py-0.2 rounded">IST</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Telemetry Refresh Action */}
-                        <button 
-                            onClick={fetchData} 
-                            title="Synchronize Live Telemetry"
-                            className="p-3 rounded-2xl bg-white border border-slate-200/90 text-slate-600 hover:text-brand-primary hover:border-brand-primary/60 transition-all duration-300 shadow-sm hover:shadow-md hover:rotate-180 active:scale-95"
-                        >
-                            <RefreshCw size={18} />
-                        </button>
-                    </div>
+                    <button 
+                        onClick={fetchData} 
+                        title="Refresh attendance records"
+                        className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-brand-primary hover:border-brand-primary transition-all hover:bg-brand-primary/5"
+                    >
+                        <RefreshCw size={18} />
+                    </button>
                 </div>
             </div>
 
-            {/* Executive Telemetry Filter Suite & Analytics Bar */}
-            <div className="bg-white/95 backdrop-blur-md rounded-3xl p-5 shadow-[0_4px_24px_-6px_rgba(15,23,42,0.06)] border border-slate-200/80 space-y-4">
+            {/* Real-time Status Filter Pills & Telemetry Bar (As per screenshot style) */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
                 <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-                    {/* Status Telemetry Pills with Interactive Counters */}
-                    <div className="flex flex-wrap items-center gap-2.5">
-                        {/* ALL LOGS */}
+                    {/* Status Pills */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* ALL */}
                         <button
                             onClick={() => setStatusFilter('All')}
-                            className={`group px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-2.5 ${
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                                 statusFilter === 'All'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/25 ring-2 ring-slate-900/20 scale-[1.02]'
-                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 hover:border-slate-300'
+                                    ? 'bg-slate-900 text-white shadow-sm shadow-slate-900/20'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
                         >
-                            <Users size={15} className={statusFilter === 'All' ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-600'} />
-                            <span>ALL</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-black ${
-                                statusFilter === 'All' ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-700'
-                            }`}>
-                                {attendanceData.length}
-                            </span>
+                            <Users size={14} />
+                            ALL ({attendanceData.length})
                         </button>
 
-                        {/* PRESENT TODAY (All Checked-in Personnel Today) */}
+                        {/* PRESENT (LIVE) */}
                         <button
                             onClick={() => { setStatusFilter('Present'); setDateFilter('Today'); }}
-                            className={`group px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-2.5 ${
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                                 statusFilter === 'Present'
-                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-500/30 scale-[1.02]'
-                                    : 'bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-800 border border-emerald-200/80 hover:border-emerald-300'
+                                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                             }`}
                         >
-                            <span className="relative flex h-2.5 w-2.5">
+                            <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            <span>PRESENT TODAY</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-black ${
-                                statusFilter === 'Present' ? 'bg-white/25 text-white' : 'bg-emerald-200/80 text-emerald-900'
-                            }`}>
-                                {presentTodayCount}
-                            </span>
+                            PRESENT TODAY ({presentTodayCount})
                         </button>
 
-                        {/* LATE ESCALATIONS */}
+                        {/* LATE */}
                         <button
                             onClick={() => setStatusFilter('Late')}
-                            className={`group px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-2.5 ${
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                                 statusFilter === 'Late'
-                                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30 ring-2 ring-amber-500/30 scale-[1.02]'
-                                    : 'bg-amber-50/80 hover:bg-amber-100/80 text-amber-800 border border-amber-200/80 hover:border-amber-300'
+                                    ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/20'
+                                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
                             }`}
                         >
-                            <AlertCircle size={15} className={statusFilter === 'Late' ? 'text-white' : 'text-amber-500 group-hover:scale-110 transition-transform'} />
-                            <span>LATE</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-black ${
-                                statusFilter === 'Late' ? 'bg-white/25 text-white' : 'bg-amber-200/80 text-amber-900'
-                            }`}>
-                                {lateTodayCount}
-                            </span>
+                            <AlertCircle size={14} />
+                            LATE ({lateTodayCount})
                         </button>
 
-                        {/* ABSENT TODAY */}
+                        {/* ABSENT */}
                         <button
                             onClick={() => { setStatusFilter('Absent'); setDateFilter('Today'); }}
-                            className={`group px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-2.5 ${
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                                 statusFilter === 'Absent'
-                                    ? 'bg-gradient-to-r from-rose-600 to-rose-700 text-white shadow-lg shadow-rose-500/30 ring-2 ring-rose-500/30 scale-[1.02]'
-                                    : 'bg-rose-50/80 hover:bg-rose-100/80 text-rose-800 border border-rose-200/80 hover:border-rose-300'
+                                    ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/20'
+                                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
                             }`}
                         >
-                            <XCircle size={15} className={statusFilter === 'Absent' ? 'text-white' : 'text-rose-500 group-hover:scale-110 transition-transform'} />
-                            <span>ABSENT TODAY</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-black ${
-                                statusFilter === 'Absent' ? 'bg-white/25 text-white' : 'bg-rose-200/80 text-rose-900'
-                            }`}>
-                                {absentTodayCount}
-                            </span>
+                            <XCircle size={14} />
+                            ABSENT TODAY ({absentTodayCount})
                         </button>
                     </div>
 
-                    {/* Precision Date Scope Segmented Control */}
-                    <div className="flex items-center gap-1 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 shadow-inner self-start lg:self-auto">
+                    {/* Date Scope Pills */}
+                    <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200 self-start lg:self-auto">
                         {['All', 'Today', 'Yesterday', 'Week'].map((d) => (
                             <button
                                 key={d}
                                 onClick={() => setDateFilter(d)}
-                                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                     dateFilter === d 
-                                        ? 'bg-white text-slate-900 shadow-md shadow-slate-900/5 font-black scale-102' 
-                                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'
+                                        ? 'bg-white text-brand-primary shadow-sm font-black' 
+                                        : 'text-slate-500 hover:text-slate-800'
                                 }`}
                             >
                                 {d === 'All' ? 'All Dates' : d === 'Week' ? 'Past 7 Days' : d}
@@ -434,22 +396,22 @@ const AttendanceManagement = () => {
                     </div>
                 </div>
 
-                {/* Telemetry Search Bar */}
-                <div className="pt-3 border-t border-slate-100 flex items-center gap-3">
+                {/* Search Bar */}
+                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-3">
                     <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
                         <input 
                             type="text" 
                             placeholder="Search employee name, location/city, or role..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-11 pr-4 py-2.5 rounded-2xl bg-slate-50/70 border border-slate-200/80 focus:bg-white focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all text-sm font-medium placeholder:text-slate-400"
+                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all text-sm font-medium"
                         />
                     </div>
                     {searchTerm && (
                         <button 
                             onClick={() => setSearchTerm('')}
-                            className="text-xs font-bold text-slate-400 hover:text-slate-700 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors"
+                            className="text-xs font-bold text-slate-400 hover:text-slate-600 px-2 py-1"
                         >
                             Clear
                         </button>
