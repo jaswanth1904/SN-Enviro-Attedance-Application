@@ -102,6 +102,16 @@ exports.recordAttendance = async (req, res, next) => {
         const istCheckIn = new Date(checkInTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
         const istHours = istCheckIn.getHours();
         const istMinutes = istCheckIn.getMinutes();
+
+        // Check Morning Lock: Daily attendance opens at 9:30 AM IST (Admins exempt)
+        const isBeforeNineThirty = istHours < 9 || (istHours === 9 && istMinutes < 30);
+        if (isBeforeNineThirty && req.user.role !== 'Admin') {
+            return res.status(403).json({
+                success: false,
+                error: 'Attendance check-in is locked. The morning check-in window opens at 9:30 AM IST.'
+            });
+        }
+
         const isLateCheckIn = istHours > 10 || (istHours === 10 && istMinutes >= 30);
 
         const attendanceData = {
@@ -116,7 +126,7 @@ exports.recordAttendance = async (req, res, next) => {
         };
 
         // Site Engineer / Office Employee Specific Logic
-        const isSpclRole = ['Application Engineer', 'Office Employee', 'Software Developer', 'Embedded Engineer'].includes(req.user.role);
+        const isSpclRole = ['Application Engineer', 'Field Application Engineer', 'Service Engineer', 'Office Employee', 'Software Developer', 'Embedded Engineer'].includes(req.user.role);
 
         if (req.isServiceLocation || isSpclRole) {
             attendanceData.locationName = actualLocationName;

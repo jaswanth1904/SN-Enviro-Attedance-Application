@@ -212,13 +212,14 @@ const LiveTrackingMap = () => {
     else setFilteredData(allEngineers.filter(e => e.status === activeFilter));
   }, [activeFilter, allEngineers]);
 
-  // Disperse overlapping markers so engineers at the same site/office are both visible
+  // Disperse overlapping markers so all engineers at the same site/office are clearly visible
   const dispersedEngineers = useMemo(() => {
     const coordBuckets = {};
     return filteredData.map((emp) => {
       const latNum = Number(emp.lat) || 20.5937;
       const lngNum = Number(emp.lng) || 78.9629;
-      const bucketKey = `${latNum.toFixed(4)}_${lngNum.toFixed(4)}`;
+      // Group by ~1.5km (2 decimal places) so all office/site personnel cluster together
+      const bucketKey = `${latNum.toFixed(2)}_${lngNum.toFixed(2)}`;
       if (!coordBuckets[bucketKey]) {
         coordBuckets[bucketKey] = 0;
       }
@@ -229,9 +230,11 @@ const LiveTrackingMap = () => {
       let displayLng = lngNum;
 
       if (indexInBucket > 0) {
-        // Disperse overlapping pins in a neat small ring (~45m)
-        const angle = (indexInBucket * (2 * Math.PI)) / 6;
-        const radius = 0.00045;
+        // Disperse in expanding concentric rings so all pins are individually visible
+        const ring = Math.floor((indexInBucket - 1) / 6) + 1;
+        const posInRing = (indexInBucket - 1) % 6;
+        const angle = (posInRing * (2 * Math.PI)) / 6 + (ring * 0.5);
+        const radius = 0.0035 * ring;
         displayLat += radius * Math.cos(angle);
         displayLng += radius * Math.sin(angle);
       }
@@ -239,7 +242,8 @@ const LiveTrackingMap = () => {
       return {
         ...emp,
         displayLat,
-        displayLng
+        displayLng,
+        bucketIndex: indexInBucket
       };
     });
   }, [filteredData]);

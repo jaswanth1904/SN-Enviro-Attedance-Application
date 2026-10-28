@@ -160,6 +160,26 @@ const Dashboard = () => {
 
     const isAfterTenThirty = false; // TEMPORARILY DISABLED FOR TESTING
 
+    // Morning Check-In Window Lock (Opens at 9:30 AM IST)
+    const [isBeforeNineThirty, setIsBeforeNineThirty] = useState(() => {
+        const now = new Date();
+        const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const hours = istDate.getHours();
+        const mins = istDate.getMinutes();
+        return hours < 9 || (hours === 9 && mins < 30);
+    });
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = new Date();
+            const istDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+            const hours = istDate.getHours();
+            const mins = istDate.getMinutes();
+            setIsBeforeNineThirty(hours < 9 || (hours === 9 && mins < 30));
+        }, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Profile Edit State
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [profileData, setProfileData] = useState({
@@ -507,6 +527,12 @@ const Dashboard = () => {
         if (type === 'in' && activeLeaveToday) {
             const remarkText = activeLeaveToday.adminRemarks ? ` MD Note: "${activeLeaveToday.adminRemarks}".` : '';
             setStatusMessage(`Attendance Locked: You are on approved ${activeLeaveToday.leaveType}.${remarkText} Check-in is disabled during approved leave.`);
+            setCheckStatus('error');
+            return;
+        }
+
+        if (type === 'in' && isBeforeNineThirty && user?.role !== 'Admin') {
+            setStatusMessage("Check-in window is locked. Daily attendance check-in opens at 9:30 AM IST.");
             setCheckStatus('error');
             return;
         }
@@ -899,6 +925,15 @@ const Dashboard = () => {
                                         )}
                                         <p className="text-[10px] text-amber-700/80 font-medium mt-1">
                                             🔒 Attendance check-in is locked during your approved leave period.
+                                        </p>
+                                    </div>
+                                ) : isBeforeNineThirty && user?.role !== 'Admin' ? (
+                                    <div className="w-full py-4 sm:py-5 px-4 sm:px-6 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-center flex flex-col items-center gap-1.5 sm:gap-2 relative z-10 shadow-sm">
+                                        <div className="flex items-center gap-2 text-amber-900 font-black text-xs sm:text-sm">
+                                            <Clock size={16} className="text-amber-600" /> Morning Check-In Window Opens at 9:30 AM IST
+                                        </div>
+                                        <p className="text-[11px] text-amber-800/80 font-medium">
+                                            Daily attendance check-in is locked before 9:30 AM. Please wait until 9:30 AM to mark your attendance.
                                         </p>
                                     </div>
                                 ) : isShiftCompletedToday ? (
