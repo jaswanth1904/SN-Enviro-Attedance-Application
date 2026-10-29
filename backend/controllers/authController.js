@@ -49,20 +49,21 @@ exports.login = async (req, res, next) => {
         const { identifier, email, phoneNumber, password } = req.body;
 
         // Support both old {email} and new {identifier} or direct {phoneNumber}
-        const loginId = identifier || email || phoneNumber;
+        const rawId = (identifier || email || phoneNumber || '').toString().trim();
+        const rawPassword = (password || '').toString();
 
-        if (!loginId || !password) {
+        if (!rawId || !rawPassword) {
             return res.status(400).json({
                 success: false,
                 error: 'Please provide email/phone and password'
             });
         }
 
-        // Check for user by email OR phone
+        // Check for user by case-insensitive trimmed email OR phone
         const user = await User.findOne({
             $or: [
-                { email: loginId },
-                { phoneNumber: loginId }
+                { email: rawId.toLowerCase() },
+                { phoneNumber: rawId }
             ]
         }).select('+password');
 

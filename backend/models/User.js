@@ -107,9 +107,29 @@ userSchema.pre('save', async function (next) {
     this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Match user entered password to hashed password in database
+// Match user entered password to hashed password in database (resilient to mobile keyboard quirks)
 userSchema.methods.matchPassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+    if (!enteredPassword) return false;
+
+    // 1. Exact match
+    let isMatch = await bcrypt.compare(enteredPassword, this.password);
+    if (isMatch) return true;
+
+    // 2. Trimmed match (handling trailing/leading spaces from mobile keyboards)
+    const trimmed = enteredPassword.trim();
+    if (trimmed !== enteredPassword) {
+        isMatch = await bcrypt.compare(trimmed, this.password);
+        if (isMatch) return true;
+    }
+
+    // 3. Lowercase first character match (handling mobile auto-capitalization e.g. "Password123" -> "password123")
+    const lowerFirst = enteredPassword.charAt(0).toLowerCase() + enteredPassword.slice(1);
+    if (lowerFirst !== enteredPassword) {
+        isMatch = await bcrypt.compare(lowerFirst.trim(), this.password);
+        if (isMatch) return true;
+    }
+
+    return false;
 };
 
 // Generate and hash password token

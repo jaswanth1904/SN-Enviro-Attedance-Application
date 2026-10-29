@@ -4,7 +4,8 @@ import { useAuth } from '../AuthContext';
 import {
     LayoutDashboard, Users, CalendarCheck, Map,
     Megaphone, Bell, CalendarClock, BarChart3,
-    Building2, Settings, LogOut, Menu, X, ChevronLeft
+    Building2, Settings, LogOut, Menu, X, ChevronLeft,
+    AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api, { getSocketUrl } from '../api';
@@ -60,6 +61,7 @@ const AdminLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
+    const [pendingExplanationsCount, setPendingExplanationsCount] = useState(0);
 
     const fetchPendingLeaves = async () => {
         try {
@@ -73,8 +75,21 @@ const AdminLayout = () => {
         }
     };
 
+    const fetchPendingExplanations = async () => {
+        try {
+            const res = await api.get('/escalations');
+            if (res.data && res.data.success && Array.isArray(res.data.data)) {
+                const count = res.data.data.filter(e => e.status !== 'Reviewed' && e.status !== 'Acknowledged').length;
+                setPendingExplanationsCount(count);
+            }
+        } catch (err) {
+            console.error('Failed to fetch pending explanations count:', err);
+        }
+    };
+
     useEffect(() => {
         fetchPendingLeaves();
+        fetchPendingExplanations();
 
         // Real-Time Socket uplink for MD Leave alerts
         const socket = io(getSocketUrl());
@@ -108,6 +123,12 @@ const AdminLayout = () => {
             icon: CalendarClock, 
             label: 'Leave Management', 
             badge: pendingLeavesCount > 0 ? String(pendingLeavesCount) : undefined 
+        },
+        { 
+            to: '/admin/explanations', 
+            icon: AlertTriangle, 
+            label: 'Late Explanations', 
+            badge: pendingExplanationsCount > 0 ? String(pendingExplanationsCount) : undefined 
         },
         { to: '/admin/reports', icon: BarChart3, label: 'Reports & Analytics' },
         { to: '/admin/departments', icon: Building2, label: 'Departments & Sites' },

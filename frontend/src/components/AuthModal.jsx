@@ -56,7 +56,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         }
 
         if (mode === 'login') {
-            const result = await login(formData.email, formData.password);
+            const result = await login(formData.email.trim(), formData.password);
             if (result.success) {
                 handleSuccessfulAuth();
             } else {
@@ -257,6 +257,9 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                         <input
                                             type="email"
                                             placeholder="Email Address"
+                                            autoCapitalize="none"
+                                            autoCorrect="off"
+                                            spellCheck="false"
                                             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                             required
                                             value={formData.email}
@@ -270,6 +273,9 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                                             <input
                                                 type={showPassword ? "text" : "password"}
                                                 placeholder="Password"
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                spellCheck="false"
                                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-12 py-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                                                 required={mode !== 'forgot'}
                                                 value={formData.password}

@@ -22,7 +22,7 @@ const ResetPassword = lazy(() => import('./components/ResetPassword'));
 
 // New Admin Panel Components
 const AdminLayout = lazy(() => import('./components/AdminPanel/AdminLayout'));
-import { Overview, EmployeeManagement, AttendanceManagement, MDAnnouncements, Notifications, LeaveManagement, ReportsAnalytics, DepartmentsSites, Settings } from './components/AdminPanel/AdminPlaceholders';
+import { Overview, EmployeeManagement, AttendanceManagement, MDAnnouncements, Notifications, LeaveManagement, AbsenceExplanations, ReportsAnalytics, DepartmentsSites, Settings } from './components/AdminPanel/AdminPlaceholders';
 
 // Ultra-fast Loading Placeholder
 const ComponentLoader = () => (
@@ -101,6 +101,7 @@ const AppContent = () => {
                 <Route path="announcements" element={<MDAnnouncements />} />
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="leaves" element={<LeaveManagement />} />
+                <Route path="explanations" element={<AbsenceExplanations />} />
                 <Route path="reports" element={<ReportsAnalytics />} />
                 <Route path="departments" element={<DepartmentsSites />} />
                 <Route path="settings" element={<Settings />} />

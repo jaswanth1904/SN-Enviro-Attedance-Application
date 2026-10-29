@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Send, CheckCircle, Clock } from 'lucide-react';
 import { useParams } from 'react-router-dom';
+import api from '../api';
 
 const LateExplanationForm = () => {
-  const { token } = useParams(); // Simulate reading token from email link
+  const { token } = useParams(); // Reading token from email link
   const [explanation, setExplanation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -13,20 +14,18 @@ const LateExplanationForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-        const response = await fetch('http://localhost:5002/api/escalations/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, reason: explanation })
+        const response = await api.post('/escalations/submit', {
+            token,
+            reason: explanation
         });
-        const data = await response.json();
         
-        if (data.success) {
+        if (response.data && response.data.success) {
             setSubmitted(true);
         } else {
-            alert(data.error || 'Failed to submit explanation.');
+            alert(response.data?.error || 'Failed to submit explanation.');
         }
     } catch (err) {
-        alert('Server error while submitting explanation.');
+        alert(err.response?.data?.error || 'Server error while submitting explanation.');
     } finally {
         setIsSubmitting(false);
     }

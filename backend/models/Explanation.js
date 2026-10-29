@@ -16,11 +16,22 @@ const ExplanationSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending Review', 'Reviewed'],
+        enum: ['Pending Review', 'Pending Submission', 'Submitted', 'Reviewed', 'Acknowledged', 'Excused', 'Warning Issued'],
         default: 'Pending Review'
     },
     token: {
         type: String
+    },
+    adminNotes: {
+        type: String,
+        default: ''
+    },
+    reviewedBy: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User'
+    },
+    reviewedAt: {
+        type: Date
     }
 }, { timestamps: true });
 
