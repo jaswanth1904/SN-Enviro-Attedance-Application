@@ -35,8 +35,8 @@ const checkLocation = async (req, res, next) => {
                 return next();
             }
 
-            // Tech roles (Software & Embedded) authorized for remote/flexible check-in
-            const isTechRole = ['Software Developer', 'Embedded Engineer', 'Application Engineer', 'Office Employee'].includes(req.user.role);
+            // Tech and Field/Regional roles authorized for flexible/service check-in
+            const isTechRole = ['Software Developer', 'Embedded Engineer', 'Field Application Engineer', 'Application Regional Manager', 'Application regional manager', 'Application Engineer', 'Office Employee'].includes(req.user.role);
             if (isTechRole) {
                 req.isServiceLocation = true;
                 return next();

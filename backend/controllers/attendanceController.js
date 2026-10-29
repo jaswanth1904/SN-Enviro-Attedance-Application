@@ -125,8 +125,8 @@ exports.recordAttendance = async (req, res, next) => {
             timestamp: timestamp || Date.now()
         };
 
-        // Site Engineer / Office Employee Specific Logic
-        const isSpclRole = ['Application Engineer', 'Field Application Engineer', 'Service Engineer', 'Office Employee', 'Software Developer', 'Embedded Engineer'].includes(req.user.role);
+        // Site Engineer / Office Employee / Regional Manager Specific Logic
+        const isSpclRole = ['Application Engineer', 'Field Application Engineer', 'Application Regional Manager', 'Application regional manager', 'Service Engineer', 'Office Employee', 'Software Developer', 'Embedded Engineer'].includes(req.user.role);
 
         if (req.isServiceLocation || isSpclRole) {
             attendanceData.locationName = actualLocationName;

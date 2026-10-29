@@ -10,6 +10,21 @@ exports.register = async (req, res, next) => {
     try {
         const { name, email, phoneNumber, password, role, empId } = req.body;
 
+        const normalizedEmail = (email || '').toLowerCase().trim();
+        const blockedEmails = ['central@snenviro.in', 'engineer@snenviro.in'];
+        if (blockedEmails.includes(normalizedEmail)) {
+            return res.status(400).json({
+                success: false,
+                error: 'This email address is restricted and cannot be registered.'
+            });
+        }
+
+        let assignedRole = role || 'Staff';
+        // Admin accounts cannot be created via public registration
+        if (assignedRole.toLowerCase() === 'admin') {
+            assignedRole = 'Application Regional Manager';
+        }
+
         // Create user
         const user = await User.create({
             name,
@@ -17,7 +32,7 @@ exports.register = async (req, res, next) => {
             phoneNumber,
             password,
             empId: empId || '',
-            role: role || 'Staff'
+            role: assignedRole
         });
 
         sendTokenResponse(user, 201, res);

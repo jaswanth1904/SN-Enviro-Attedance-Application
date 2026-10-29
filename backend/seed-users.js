@@ -12,7 +12,7 @@ const fixUsers = async () => {
         await User.deleteMany({ email: { $in: ['md@snenviro.in', 'engineer@snenviro.in'] } });
         console.log('Removed old test accounts from database.');
 
-        // Recreate them with the CORRECT roles
+        // Recreate MD account
         const users = [
             { 
                 email: 'md@snenviro.in', 
@@ -20,13 +20,6 @@ const fixUsers = async () => {
                 password: 'password123', 
                 role: 'Admin', // Admin goes to /admin
                 empId: 'MD-001' 
-            },
-            { 
-                email: 'engineer@snenviro.in', 
-                name: 'Field Engineer', 
-                password: 'password123', 
-                role: 'Service Engineer', // Service Engineer goes to /dashboard
-                empId: 'ENG-001' 
             }
         ];
 

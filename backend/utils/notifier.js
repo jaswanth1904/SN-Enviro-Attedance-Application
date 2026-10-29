@@ -77,9 +77,26 @@ const sendDailyReport = async (presentUsers, absentUsers, onLeaveUsers = []) => 
                 }
             });
 
+            // Executive Management recipients strictly for the Daily Attendance Report
+            const executiveRecipients = [
+                'sales@snenviro.com',
+                'david@snenviro.com',
+                'ramesh@snenviro.com'
+            ];
+            const envRecipients = process.env.DAILY_REPORT_EMAILS
+                ? process.env.DAILY_REPORT_EMAILS.split(',').map(e => e.trim()).filter(Boolean)
+                : [];
+            const primaryRecipient = process.env.DM_EMAIL || authUser;
+
+            const recipientList = Array.from(new Set([
+                primaryRecipient,
+                ...executiveRecipients,
+                ...envRecipients
+            ])).filter(Boolean);
+
             const mailOptions = {
                 from: `"${fromName}" <${fromEmail}>`,
-                to: process.env.DM_EMAIL || authUser,
+                to: recipientList.join(', '),
                 subject: subject,
                 html: `
                     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; line-height: 1.6;">
@@ -130,7 +147,7 @@ const sendDailyReport = async (presentUsers, absentUsers, onLeaveUsers = []) => 
             };
 
             await transporter.sendMail(mailOptions);
-            console.log('✅ Daily Report Email sent to DM');
+            console.log(`✅ Daily Report Email sent to: ${recipientList.join(', ')}`);
         } else {
             console.log('⚠️ Report Skip: Email credentials not configured in .env');
         }

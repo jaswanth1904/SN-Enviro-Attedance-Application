@@ -66,7 +66,7 @@ const Overview = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard label="Total Personnel" value={stats.totalEmployees} icon={Users} color="blue" delay={0.1} />
+                <StatCard label="Total Employees" value={stats.totalEmployees} icon={Users} color="blue" delay={0.1} />
                 <StatCard label="Present Today" value={stats.presentToday} icon={CalendarCheck} color="emerald" delay={0.2} />
                 <StatCard label="Active Sites" value={stats.activeSites} icon={MapPin} color="purple" delay={0.3} />
                 <StatCard label="Attendance Rate" value={`${stats.attendancePercentage}%`} icon={Clock} color="amber" delay={0.4} />
