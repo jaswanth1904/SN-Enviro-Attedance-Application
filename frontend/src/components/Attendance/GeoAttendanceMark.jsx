@@ -85,6 +85,12 @@ const GeoAttendanceMark = () => {
   };
 
   const markAttendance = async () => {
+    const isSunday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })).getDay() === 0;
+    if (isSunday) {
+      setError("Attendance check-in is closed on Sundays (Official Weekly Off). Resumes Monday at 9:30 AM IST.");
+      return;
+    }
+
     setLoading(true);
     const payload = {
       latitude: location.lat,

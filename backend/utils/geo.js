@@ -7,15 +7,16 @@ const axios = require('axios');
  * @returns {Promise<string>} Location address or default message
  */
 exports.reverseGeocode = async (lat, lng) => {
-    // Direct check for known operational hubs
+    // Direct check for Head Office (Strict 500m radius)
     if (lat && lng) {
-        // Kanigiri area (15.40, 79.51)
-        if (Math.abs(lat - 15.4065) < 0.1 && Math.abs(lng - 79.5113) < 0.1) {
-            return 'Kanigiri, Andhra Pradesh';
+        const distToOffice = exports.calculateDistance(lat, lng, 17.4401202, 78.5043297);
+        if (distToOffice <= 500) {
+            return 'SN Enviro Head Office (Secunderabad)';
         }
-        // Head Office area (17.44, 78.50)
-        if (Math.abs(lat - 17.4401) < 0.05 && Math.abs(lng - 78.5043) < 0.05) {
-            return 'SN Enviro Head Office (Hyderabad)';
+
+        // Kanigiri area (15.40, 79.51)
+        if (Math.abs(lat - 15.4065) < 0.05 && Math.abs(lng - 79.5113) < 0.05) {
+            return 'Kanigiri, Andhra Pradesh';
         }
     }
 
@@ -61,7 +62,7 @@ exports.reverseGeocode = async (lat, lng) => {
 };
 
 const authorizedPlants = [
-    { name: "SN Enviro Head Office (Hyderabad)", lat: 17.4401202, lng: 78.5043297 },
+    { name: "SN Enviro Head Office (Secunderabad)", lat: 17.4401202, lng: 78.5043297 },
     { name: "Ultratech Cement Limited (unit: Patratu Cement Works)", lat: 23.6187, lng: 85.2746 },
     { name: "THDC India Limited, Amelia Coal Block", lat: 24.0784, lng: 82.6487 },
     { name: "Test", lat: 13.207554, lng: 79.101252 },
@@ -180,10 +181,15 @@ exports.verifyPlantGeofence = (engineerLat, engineerLng) => {
         }
     }
 
+    // Office: 500 meters cutoff. Industries / Plants: 1000 meters (1.0 KM) cutoff
+    const isOffice = closestPlant && (closestPlant.name.includes('Head Office') || (Math.abs(closestPlant.lat - 17.4401202) < 0.001 && Math.abs(closestPlant.lng - 78.5043297) < 0.001));
+    const radiusLimit = isOffice ? 500 : 1000;
+
     return {
         plant: closestPlant,
         distanceMeters: shortestDistance,
-        isAuthorized: shortestDistance <= 1000 // 1.0 KM cutoff
+        radiusLimit: radiusLimit,
+        isAuthorized: shortestDistance <= radiusLimit
     };
 };
 

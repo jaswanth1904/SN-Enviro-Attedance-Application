@@ -11,6 +11,12 @@ const checkAndEscalateLateCheckIns = async () => {
     console.log(`\x1b[36m%s\x1b[0m`, `[Cron] Running Escalation Check for Late Logins...`);
     try {
         const now = new Date();
+        const istDay = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })).getDay();
+        if (istDay === 0) {
+            console.log(`[Cron Escalation] ⏸️ Skipping: Sunday is official weekly off.`);
+            return;
+        }
+
         const istDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         const startOfDay = new Date(`${istDateStr}T00:00:00.000+05:30`);
         const endOfDay = new Date(`${istDateStr}T23:59:59.999+05:30`);
@@ -106,11 +112,11 @@ const checkAndEscalateLateCheckIns = async () => {
     }
 };
 
-cron.schedule('30 10 * * *', checkAndEscalateLateCheckIns, {
+cron.schedule('30 10 * * 1-6', checkAndEscalateLateCheckIns, {
     scheduled: true,
     timezone: "Asia/Kolkata"
 });
 
-console.log(`\x1b[35m%s\x1b[0m`, `⚙️ Escalation Engine initialized: Runs daily at 10:30 AM IST.`);
+console.log(`\x1b[35m%s\x1b[0m`, `⚙️ Escalation Engine initialized: Runs Mon-Sat at 10:30 AM IST (Sunday Off).`);
 
 module.exports = { checkAndEscalateLateCheckIns };

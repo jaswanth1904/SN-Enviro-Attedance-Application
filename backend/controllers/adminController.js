@@ -185,56 +185,271 @@ exports.getLiveTracking = async (req, res) => {
 // @access  Admin/MD
 exports.exportReport = async (req, res) => {
     try {
-        const { type, range } = req.query; // type: attendance, leaves, employees. range: today, this-week, this-month, etc.
+        const { type, range, startDate, endDate, role } = req.query; // type: attendance, leaves, employees
         let csv = '\uFEFF'; // UTF-8 BOM for Microsoft Excel compatibility
         
-        // Date filtering
-        const today = new Date();
-        const queryDate = new Date();
-        if (range === 'today') queryDate.setHours(0,0,0,0);
-        if (range === 'this-week') queryDate.setDate(today.getDate() - 7);
-        if (range === 'this-month') queryDate.setMonth(today.getMonth() - 1);
+        // Date filtering in Indian Standard Time (IST)
+        let query = {};
+        if (startDate) {
+            const start = new Date(`${startDate}T00:00:00.000+05:30`);
+            const end = new Date(`${endDate || startDate}T23:59:59.999+05:30`);
+            query.timestamp = { $gte: start, $lte: end };
+        } else if (range === 'today') {
+            const now = new Date();
+            const istDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+            const start = new Date(`${istDateStr}T00:00:00.000+05:30`);
+            const end = new Date(`${istDateStr}T23:59:59.999+05:30`);
+            query.timestamp = { $gte: start, $lte: end };
+        } else if (range === 'this-week') {
+            const qDate = new Date();
+            qDate.setDate(qDate.getDate() - 7);
+            query.timestamp = { $gte: qDate };
+        } else if (range === 'this-month') {
+            const qDate = new Date();
+            qDate.setMonth(qDate.getMonth() - 1);
+            query.timestamp = { $gte: qDate };
+        }
         
         if (type === 'attendance') {
-            const records = await Attendance.find(range !== 'custom' ? { timestamp: { $gte: queryDate } } : {}).populate('user', 'name role empId email');
-            csv += 'Employee Name,Role,Employee ID,Date,Check-In Time,Check-Out Time,Total Hours,Overtime Hours,Location Name,Status\n';
-            records.forEach(r => {
+            const records = await Attendance.find(query).populate('user', 'name role empId email').sort({ timestamp: -1 });
+            
+            // Filter non-admin and optional role
+            const filteredRecords = records.filter(r => {
+                if (!r.user || r.user.role === 'Admin' || r.user.role === 'SuperAdmin') return false;
+                if (role && role !== 'All' && r.user.role !== role) return false;
+                return true;
+            });
+
+            // Header: Removed redundant 'On-Time/Late' column, placed exact Login Time (IST)
+            csv += 'Employee Name,Role,Employee ID,Date,Login Time (IST),Logout Time (IST),Total Hours,Overtime Hours,Location / Site\n';
+            filteredRecords.forEach(r => {
                 const d = new Date(r.timestamp);
-                const isLate = (d.getHours() > 10 || (d.getHours() === 10 && d.getMinutes() >= 30));
-                const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-                const timeStr = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                const checkOutStr = r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Active Shift';
+                // Format Date as DD-MM-YYYY (e.g. 02-11-2026)
+                const dateParts = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).split('-'); // YYYY-MM-DD
+                const dateStr = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+                
+                // Exact Login Time in IST with 12-hour AM/PM format
+                const loginTimeStr = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+                const logoutTimeStr = r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : 'Active Shift';
                 const totalHrs = r.totalHours ? r.totalHours.toFixed(2) : '0.00';
                 const ot = r.overtime ? r.overtime.toFixed(2) : '0.00';
-                csv += `"${r.user?.name || 'N/A'}","${r.user?.role || 'N/A'}","${r.user?.empId || 'N/A'}","${dateStr}","${timeStr}","${checkOutStr}","${totalHrs}","${ot}","${r.locationName || 'Unknown Location'}","${isLate ? 'Late' : 'On-Time'}"\n`;
+                const loc = (r.locationName || 'Unknown Location').replace(/"/g, '""');
+
+                csv += `"${r.user?.name || 'N/A'}","${r.user?.role || 'N/A'}","${r.user?.empId || 'N/A'}","${dateStr}","${loginTimeStr}","${logoutTimeStr}","${totalHrs}","${ot}","${loc}"\n`;
             });
         } else if (type === 'leaves') {
-            const records = await Leave.find(range !== 'custom' ? { appliedAt: { $gte: queryDate } } : {}).populate('user', 'name empId email');
-            csv += 'Employee Name,Employee ID,Leave Type,Start Date,End Date,Status,MD Remarks / Note,Applied At\n';
+            let leaveQuery = {};
+            if (startDate) {
+                const start = new Date(`${startDate}T00:00:00.000+05:30`);
+                const end = new Date(`${endDate || startDate}T23:59:59.999+05:30`);
+                leaveQuery.appliedAt = { $gte: start, $lte: end };
+            } else if (query.timestamp) {
+                leaveQuery.appliedAt = query.timestamp;
+            }
+
+            const records = await Leave.find(leaveQuery).populate('user', 'name role empId email').sort({ appliedAt: -1 });
+            csv += 'Employee Name,Role,Employee ID,Leave Type,Start Date,End Date,Status,MD Remarks / Note,Applied At\n';
             records.forEach(r => {
-                const startStr = new Date(r.startDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-                const endStr = new Date(r.endDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-                const appliedStr = new Date(r.appliedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                const startParts = new Date(r.startDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).split('-');
+                const endParts = new Date(r.endDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).split('-');
+                const appliedParts = new Date(r.appliedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).split('-');
+                const startStr = `${startParts[2]}-${startParts[1]}-${startParts[0]}`;
+                const endStr = `${endParts[2]}-${endParts[1]}-${endParts[0]}`;
+                const appliedStr = `${appliedParts[2]}-${appliedParts[1]}-${appliedParts[0]}`;
                 const remarks = (r.adminRemarks || r.rejectionReason || 'None').replace(/"/g, '""');
-                csv += `"${r.user?.name || 'N/A'}","${r.user?.empId || 'N/A'}","${r.leaveType || r.type}","${startStr}","${endStr}","${r.status}","${remarks}","${appliedStr}"\n`;
+                csv += `"${r.user?.name || 'N/A'}","${r.user?.role || 'N/A'}","${r.user?.empId || 'N/A'}","${r.leaveType || r.type}","${startStr}","${endStr}","${r.status}","${remarks}","${appliedStr}"\n`;
             });
         } else if (type === 'employees') {
-            const records = await User.find();
+            const records = await User.find({ role: { $ne: 'Admin' } }).sort({ name: 1 });
             csv += 'Employee Name,Email,Employee ID,Role,Phone Number,Joining Date\n';
             records.forEach(r => {
-                const joinStr = r.joiningDate ? new Date(r.joiningDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) : 'N/A';
+                let joinStr = 'N/A';
+                if (r.joiningDate) {
+                    const jp = new Date(r.joiningDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).split('-');
+                    joinStr = `${jp[2]}-${jp[1]}-${jp[0]}`;
+                }
                 csv += `"${r.name}","${r.email}","${r.empId || 'N/A'}","${r.role}","${r.phoneNumber || 'N/A'}","${joinStr}"\n`;
             });
+        } else if (type === 'absent') {
+            const dates = [];
+            if (startDate) {
+                let cur = new Date(`${startDate}T00:00:00.000+05:30`);
+                const end = new Date(`${endDate || startDate}T00:00:00.000+05:30`);
+                while (cur <= end) {
+                    dates.push(cur.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+                    cur.setDate(cur.getDate() + 1);
+                }
+            } else if (range === 'today') {
+                dates.push(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+            } else if (range === 'yesterday') {
+                const d = new Date();
+                d.setDate(d.getDate() - 1);
+                dates.push(d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+            } else if (range === 'this-week') {
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    dates.push(d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+                }
+            } else if (range === 'this-month') {
+                const now = new Date();
+                const startDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                let cur = startDay;
+                while (cur <= now) {
+                    dates.push(cur.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+                    cur.setDate(cur.getDate() + 1);
+                }
+            }
+
+            let userQuery = { 
+                role: { $nin: ['Admin', 'SuperAdmin'] },
+                name: { $ne: 'Managing Director' },
+                email: { $ne: 'md@snenviro.in' }
+            };
+            if (role && role !== 'All') {
+                userQuery.role = role;
+            }
+            const employees = await User.find(userQuery).sort({ name: 1 });
+
+            csv += 'Employee Name,Role,Employee ID,Date,Status,Leave Details,Email,Phone Number\n';
+            dates.reverse();
+
+            for (const dStr of dates) {
+                const dayStart = new Date(`${dStr}T00:00:00.000+05:30`);
+                const dayEnd = new Date(`${dStr}T23:59:59.999+05:30`);
+
+                const attendances = await Attendance.find({ timestamp: { $gte: dayStart, $lte: dayEnd } }).select('user');
+                const presentUserIds = new Set(attendances.map(a => a.user?.toString()));
+
+                const leaves = await Leave.find({
+                    status: 'Approved',
+                    startDate: { $lte: dayEnd },
+                    endDate: { $gte: dayStart }
+                }).select('user leaveType');
+                const leaveMap = new Map();
+                leaves.forEach(l => leaveMap.set(l.user?.toString(), l.leaveType));
+
+                const [y, m, d] = dStr.split('-');
+                const formattedDate = `${d}-${m}-${y}`;
+
+                for (const emp of employees) {
+                    const empIdStr = emp._id.toString();
+                    if (!presentUserIds.has(empIdStr)) {
+                        const onLeave = leaveMap.has(empIdStr);
+                        const status = onLeave ? 'On Approved Leave' : 'Absent';
+                        const leaveDetails = onLeave ? (leaveMap.get(empIdStr) || 'Approved Leave') : 'Unexcused / No Leave Applied';
+                        csv += `"${emp.name}","${emp.role}","${emp.empId || 'N/A'}","${formattedDate}","${status}","${leaveDetails}","${emp.email}","${emp.phoneNumber || 'N/A'}"\n`;
+                    }
+                }
+            }
         } else {
             return res.status(400).send('Invalid report type');
         }
 
+        const dateSuffix = startDate ? startDate : new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         res.header('Content-Type', 'text/csv; charset=utf-8');
-        res.attachment(`SN_Enviro_${type.toUpperCase()}_Report_${Date.now()}.csv`);
+        res.attachment(`SN_Enviro_${type.toUpperCase()}_Report_${dateSuffix}.csv`);
         res.send(csv);
     } catch (err) {
-        console.error('Export Error:', err);
-        res.status(500).send('Server Error during export');
+        console.error(err);
+        res.status(500).send('Server Error generating report');
+    }
+};
+
+// @desc    Get absent employees report for live preview
+// @route   GET /api/admin/absent-report
+// @access  Admin/MD
+exports.getAbsentReport = async (req, res) => {
+    try {
+        const { range, startDate, endDate, role } = req.query;
+        const dates = [];
+        if (startDate) {
+            let cur = new Date(`${startDate}T00:00:00.000+05:30`);
+            const end = new Date(`${endDate || startDate}T00:00:00.000+05:30`);
+            while (cur <= end) {
+                dates.push(cur.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+                cur.setDate(cur.getDate() + 1);
+            }
+        } else if (range === 'today') {
+            dates.push(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+        } else if (range === 'yesterday') {
+            const d = new Date();
+            d.setDate(d.getDate() - 1);
+            dates.push(d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+        } else if (range === 'this-week') {
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                dates.push(d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+            }
+        } else if (range === 'this-month') {
+            const now = new Date();
+            const startDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            let cur = startDay;
+            while (cur <= now) {
+                dates.push(cur.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }));
+                cur.setDate(cur.getDate() + 1);
+            }
+        }
+
+        let userQuery = { 
+            role: { $nin: ['Admin', 'SuperAdmin'] },
+            name: { $ne: 'Managing Director' },
+            email: { $ne: 'md@snenviro.in' }
+        };
+        if (role && role !== 'All') {
+            userQuery.role = role;
+        }
+        const employees = await User.find(userQuery).sort({ name: 1 });
+
+        const results = [];
+        dates.reverse();
+
+        for (const dStr of dates) {
+            const dayStart = new Date(`${dStr}T00:00:00.000+05:30`);
+            const dayEnd = new Date(`${dStr}T23:59:59.999+05:30`);
+
+            const attendances = await Attendance.find({ timestamp: { $gte: dayStart, $lte: dayEnd } }).select('user');
+            const presentUserIds = new Set(attendances.map(a => a.user?.toString()));
+
+            const leaves = await Leave.find({
+                status: 'Approved',
+                startDate: { $lte: dayEnd },
+                endDate: { $gte: dayStart }
+            }).select('user leaveType');
+            const leaveMap = new Map();
+            leaves.forEach(l => leaveMap.set(l.user?.toString(), l.leaveType));
+
+            const [y, m, d] = dStr.split('-');
+            const formattedDate = `${d}-${m}-${y}`;
+
+            for (const emp of employees) {
+                const empIdStr = emp._id.toString();
+                if (!presentUserIds.has(empIdStr)) {
+                    const onLeave = leaveMap.has(empIdStr);
+                    results.push({
+                        _id: `${emp._id}_${dStr}`,
+                        user: {
+                            _id: emp._id,
+                            name: emp.name,
+                            role: emp.role,
+                            empId: emp.empId,
+                            email: emp.email,
+                            phoneNumber: emp.phoneNumber
+                        },
+                        date: formattedDate,
+                        rawDate: dStr,
+                        status: onLeave ? 'On Approved Leave' : 'Absent',
+                        leaveDetails: onLeave ? (leaveMap.get(empIdStr) || 'Approved Leave') : 'Unexcused / No Leave Applied'
+                    });
+                }
+            }
+        }
+
+        res.status(200).json({ success: true, count: results.length, data: results });
+    } catch (err) {
+        console.error('getAbsentReport error:', err);
+        res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
 

@@ -11,9 +11,15 @@ const Footer = () => {
                 </Link>
 
                 <div className="flex items-center gap-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    <button onClick={() => alert('Privacy Policy: All data is securely encrypted and stored following enterprise standards.')} className="hover:text-slate-800 transition-colors">Privacy</button>
-                    <button onClick={() => alert('Terms of Service: Authorized personnel only. Usage is strictly monitored for enterprise security.')} className="hover:text-slate-800 transition-colors">Terms</button>
-                    <a href="mailto:jaswanth@snenviro.in" className="hover:text-slate-800 transition-colors">Contact</a>
+                    <Link to="/privacy" className="hover:text-slate-800 transition-colors">Privacy</Link>
+                    <Link to="/terms" className="hover:text-slate-800 transition-colors">Terms</Link>
+                    <a 
+                        href="mailto:jaswanth@snenviro.in?cc=software@snenviro.in&subject=SN%20Enviro%20Portal%20Inquiry" 
+                        title="Primary: jaswanth@snenviro.in | Secondary: software@snenviro.in"
+                        className="hover:text-slate-800 transition-colors"
+                    >
+                        Contact
+                    </a>
                 </div>
             </div>
             

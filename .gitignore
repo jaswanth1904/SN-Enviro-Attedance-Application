@@ -9,3 +9,14 @@ build/
 uploads/
 backend/uploads/
 .DS_Store
+
+# AI Agent Skills & Tool Harnesses
+.agents/
+.claude/
+agent/
+skills-lock.json
+
+# Internal Security Findings & Scratch Files
+backend/SECURITY_FINDINGS.md
+backend/test-*.js
+backend/remove-*.js

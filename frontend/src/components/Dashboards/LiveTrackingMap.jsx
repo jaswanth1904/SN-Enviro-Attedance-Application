@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Users, Filter, Clock, AlertTriangle } from 'lucide-react';
@@ -18,14 +18,22 @@ const MapRefresher = () => {
   return null;
 };
 
-// Auto fly-to when employee card is selected
-const MapFlyTo = ({ target }) => {
+// Auto fly-to and open popup when employee card is selected
+const MapFlyTo = ({ target, markerRefs }) => {
   const map = useMap();
   useEffect(() => {
     if (target && target.lat && target.lng) {
-      map.flyTo([target.displayLat || target.lat, target.displayLng || target.lng], 14, { duration: 1.2 });
+      const targetPos = [target.displayLat || target.lat, target.displayLng || target.lng];
+      map.flyTo(targetPos, 16, { duration: 1.2 });
+      
+      const timer = setTimeout(() => {
+        if (markerRefs.current && markerRefs.current[target.id]) {
+          markerRefs.current[target.id].openPopup();
+        }
+      }, 1250);
+      return () => clearTimeout(timer);
     }
-  }, [target, map]);
+  }, [target, map, markerRefs]);
   return null;
 };
 
@@ -68,6 +76,17 @@ const LiveTrackingMap = () => {
   const [allEngineers, setAllEngineers] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [selectedEmp, setSelectedEmp] = useState(null);
+  const markerRefs = useRef({});
+
+  const handleSelectEmployee = (emp) => {
+    setSelectedEmp(emp);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      const mapViewport = document.getElementById('live-map-viewport');
+      if (mapViewport) {
+        mapViewport.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchLive = async () => {
@@ -234,7 +253,7 @@ const LiveTrackingMap = () => {
         const ring = Math.floor((indexInBucket - 1) / 6) + 1;
         const posInRing = (indexInBucket - 1) % 6;
         const angle = (posInRing * (2 * Math.PI)) / 6 + (ring * 0.5);
-        const radius = 0.0035 * ring;
+        const radius = 0.0020 * ring; // ~220m orbit radius
         displayLat += radius * Math.cos(angle);
         displayLng += radius * Math.sin(angle);
       }
@@ -249,6 +268,23 @@ const LiveTrackingMap = () => {
   }, [filteredData]);
 
   const getIcon = (emp) => {
+    const isSelected = selectedEmp?.id === emp.id;
+    if (isSelected) {
+      const baseColor = emp.isMoving ? '#06b6d4' : (emp.city?.includes('Head Office') ? '#2563eb' : (emp.status === 'late' ? '#ef4444' : '#10b981'));
+      return L.divIcon({
+        className: 'custom-icon-selected',
+        html: `
+          <div class="relative w-10 h-10 -ml-2 -mt-2 flex items-center justify-center">
+            <div class="absolute w-full h-full rounded-full animate-ping opacity-80" style="background-color: ${baseColor}"></div>
+            <div class="relative w-7 h-7 rounded-full shadow-[0_0_15px_${baseColor}] border-2 border-white flex items-center justify-center text-[11px] text-white font-bold" style="background-color: ${baseColor}">
+              📍
+            </div>
+          </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+      });
+    }
     if (emp.isMinimized) return iconLate; // Amber/Red alert for minimized
     if (emp.isMoving) return iconMoving;
     if (emp.city?.includes('Head Office')) return iconOffice;
@@ -307,7 +343,7 @@ const LiveTrackingMap = () => {
           {dispersedEngineers.map(emp => (
             <div 
               key={emp.id} 
-              onClick={() => setSelectedEmp(emp)}
+              onClick={() => handleSelectEmployee(emp)}
               className={`p-4 rounded-xl bg-white border transition-all cursor-pointer group ${
                 selectedEmp?.id === emp.id 
                   ? 'border-blue-500 shadow-md ring-2 ring-blue-500/20' 
@@ -348,7 +384,7 @@ const LiveTrackingMap = () => {
       </motion.div>
 
       {/* Map Container */}
-      <div className="flex-[0.6] md:flex-1 relative order-first md:order-last min-h-0">
+      <div id="live-map-viewport" className="flex-[0.6] md:flex-1 relative order-first md:order-last min-h-[350px] md:min-h-0">
         <MapContainer 
           center={[20.5937, 78.9629]} // Center of India
           zoom={5} 
@@ -356,7 +392,7 @@ const LiveTrackingMap = () => {
           zoomControl={false}
         >
           <MapRefresher />
-          <MapFlyTo target={selectedEmp} />
+          <MapFlyTo target={selectedEmp} markerRefs={markerRefs} />
           {/* Default OSM basemap */}
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -364,7 +400,19 @@ const LiveTrackingMap = () => {
           />
 
           {dispersedEngineers.map(emp => (
-            <Marker key={emp.id} position={[emp.displayLat, emp.displayLng]} icon={getIcon(emp)}>
+            <Marker 
+              key={emp.id} 
+              position={[emp.displayLat, emp.displayLng]} 
+              icon={getIcon(emp)}
+              ref={(ref) => {
+                if (ref) markerRefs.current[emp.id] = ref;
+              }}
+              eventHandlers={{
+                click: () => {
+                  setSelectedEmp(emp);
+                }
+              }}
+            >
               <Popup className="futuristic-popup">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xl min-w-[220px]">
                   <div className="font-bold text-lg text-slate-900 mb-0.5 flex items-center justify-between">

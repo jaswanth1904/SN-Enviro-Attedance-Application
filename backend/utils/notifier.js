@@ -81,7 +81,9 @@ const sendDailyReport = async (presentUsers, absentUsers, onLeaveUsers = []) => 
             const executiveRecipients = [
                 'sales@snenviro.com',
                 'david@snenviro.com',
-                'ramesh@snenviro.com'
+                'ramesh@snenviro.com',
+                'jaswanth@snenviro.in',
+                'software@snenviro.in'
             ];
             const envRecipients = process.env.DAILY_REPORT_EMAILS
                 ? process.env.DAILY_REPORT_EMAILS.split(',').map(e => e.trim()).filter(Boolean)

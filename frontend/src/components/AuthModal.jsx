@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, User, Check, AlertCircle, Phone, Briefcase, RefreshCw, ArrowRight, Eye, EyeOff, MapPin } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     const [mode, setMode] = useState(initialMode);
@@ -332,6 +332,12 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center gap-3 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                        <Link to="/privacy" onClick={onClose} className="hover:text-slate-700 transition-colors">Privacy Policy</Link>
+                        <span>•</span>
+                        <Link to="/terms" onClick={onClose} className="hover:text-slate-700 transition-colors">Terms of Service</Link>
+                    </div>
                 </div>
             </motion.div>
         </div>

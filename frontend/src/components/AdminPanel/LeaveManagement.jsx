@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Eye, CalendarClock, Clock, User } from 'lucide-react';
+import { Check, X, Eye, CalendarClock, Clock, User, Calendar } from 'lucide-react';
 import api from '../api';
+import EmptyState from '../common/EmptyState';
 
 const LeaveManagement = () => {
     const [leaves, setLeaves] = useState([]);
@@ -96,7 +97,13 @@ const LeaveManagement = () => {
                 {loading ? (
                     <div className="col-span-full p-10 text-center font-bold text-slate-400">Loading requests...</div>
                 ) : filteredLeaves.length === 0 ? (
-                    <div className="col-span-full p-10 text-center font-bold text-slate-400 bg-white rounded-2xl border border-slate-100">No {filter.toLowerCase()} leave requests found.</div>
+                    <div className="col-span-full">
+                        <EmptyState 
+                            icon={Calendar}
+                            title={`No ${filter.toLowerCase()} leave requests`}
+                            description={`There are currently no leave applications matching the "${filter}" status.`}
+                        />
+                    </div>
                 ) : (
                     filteredLeaves.map((leave, idx) => (
                         <motion.div 

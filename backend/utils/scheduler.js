@@ -19,8 +19,15 @@ const initScheduler = (app = null) => {
         })
         .catch(err => console.error('--- ❌ STARTUP ATTENDANCE SWEEP ERROR ---', err.message));
 
-    // Schedule task to run every day at 11:30 AM IST
-    cron.schedule('30 11 * * *', async () => {
+    // Schedule task to run Mon-Sat at 11:30 AM IST (Sundays are official weekly off)
+    cron.schedule('30 11 * * 1-6', async () => {
+        // Double-check IST day at execution time
+        const istDay = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })).getDay();
+        if (istDay === 0) {
+            console.log('--- ⏸️ SUNDAY WEEKLY OFF: Skipping daily attendance report ---');
+            return;
+        }
+
         console.log('--- 📊 GENERATING DAILY ATTENDANCE REPORT ---');
 
         try {
@@ -84,8 +91,14 @@ const initScheduler = (app = null) => {
         timezone: "Asia/Kolkata"
     });
 
-    // Schedule task to run every day at 7:00 PM (19:00 IST) to auto-checkout active shifts
-    cron.schedule('0 19 * * *', async () => {
+    // Schedule task to run Mon-Sat at 7:00 PM (19:00 IST) to auto-checkout active shifts
+    cron.schedule('0 19 * * 1-6', async () => {
+        const istDay = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })).getDay();
+        if (istDay === 0) {
+            console.log('--- ⏸️ SUNDAY WEEKLY OFF: Skipping 7:00 PM auto-checkout ---');
+            return;
+        }
+
         console.log('--- 🕖 7:00 PM IST AUTO-CHECKOUT TRIGGERED FOR ALL ENGINEERS ---');
         try {
             const count = await autoClosePendingAttendances({}, app?.locals?.io);
@@ -98,7 +111,7 @@ const initScheduler = (app = null) => {
         timezone: "Asia/Kolkata"
     });
 
-    console.log('⚙️ Scheduler initialized: Reports set for 11:30 AM Daily & Auto-Checkout set for 7:00 PM IST.');
+    console.log('⚙️ Scheduler initialized: Reports set for 11:30 AM Mon-Sat & Auto-Checkout set for 7:00 PM IST (Sunday Off).');
 
     // 1st of every month at midnight (0 0 1 * *)
     cron.schedule('0 0 1 * *', async () => {

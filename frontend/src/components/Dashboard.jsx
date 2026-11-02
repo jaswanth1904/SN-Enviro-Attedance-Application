@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-    MapPin, Clock, Calendar, BarChart3,
+    MapPin, Clock, Calendar, CalendarCheck, BarChart3,
     CheckCircle2, AlertCircle, RefreshCw,
     TrendingUp, Users, ShieldCheck, ArrowLeft, Shield, Zap, Info,
     LogOut, LogIn, Sun, Moon, Wallet, Briefcase, Eye, Loader2, Globe, Activity, Timer, User, Edit, Save, Link2, Layers, ChevronDown
@@ -160,6 +160,12 @@ const Dashboard = () => {
 
     const isAfterTenThirty = false; // TEMPORARILY DISABLED FOR TESTING
 
+    // Sunday Lock: Attendance check-in is officially disabled on Sundays (IST)
+    const [isSunday, setIsSunday] = useState(() => {
+        const istDay = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })).getDay();
+        return istDay === 0;
+    });
+
     // Morning Check-In Window Lock (Opens at 9:30 AM IST)
     const [isBeforeNineThirty, setIsBeforeNineThirty] = useState(() => {
         const now = new Date();
@@ -176,6 +182,7 @@ const Dashboard = () => {
             const hours = istDate.getHours();
             const mins = istDate.getMinutes();
             setIsBeforeNineThirty(hours < 9 || (hours === 9 && mins < 30));
+            setIsSunday(istDate.getDay() === 0);
         }, 30000);
         return () => clearInterval(interval);
     }, []);
@@ -527,6 +534,12 @@ const Dashboard = () => {
         if (type === 'in' && activeLeaveToday) {
             const remarkText = activeLeaveToday.adminRemarks ? ` MD Note: "${activeLeaveToday.adminRemarks}".` : '';
             setStatusMessage(`Attendance Locked: You are on approved ${activeLeaveToday.leaveType}.${remarkText} Check-in is disabled during approved leave.`);
+            setCheckStatus('error');
+            return;
+        }
+
+        if (type === 'in' && isSunday) {
+            setStatusMessage("Attendance is closed on Sundays (Official Weekly Off). Check-in resumes Monday at 9:30 AM IST.");
             setCheckStatus('error');
             return;
         }
@@ -925,6 +938,15 @@ const Dashboard = () => {
                                         )}
                                         <p className="text-[10px] text-amber-700/80 font-medium mt-1">
                                             🔒 Attendance check-in is locked during your approved leave period.
+                                        </p>
+                                    </div>
+                                ) : isSunday ? (
+                                    <div className="w-full py-4 sm:py-5 px-4 sm:px-6 rounded-2xl bg-indigo-50/90 border border-indigo-200/80 text-center flex flex-col items-center gap-1.5 sm:gap-2 relative z-10 shadow-sm">
+                                        <div className="flex items-center gap-2 text-indigo-900 font-black text-xs sm:text-sm">
+                                            <CalendarCheck size={16} className="text-indigo-600" /> Sunday — Weekly Off
+                                        </div>
+                                        <p className="text-[11px] text-indigo-800/80 font-medium">
+                                            Attendance check-in is closed on Sundays. Enjoy your weekend! Regular check-in opens Monday at 9:30 AM IST.
                                         </p>
                                     </div>
                                 ) : isBeforeNineThirty && user?.role !== 'Admin' ? (

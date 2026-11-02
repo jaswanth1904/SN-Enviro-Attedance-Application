@@ -103,6 +103,16 @@ exports.recordAttendance = async (req, res, next) => {
         const istHours = istCheckIn.getHours();
         const istMinutes = istCheckIn.getMinutes();
 
+        // Sunday Weekly Off Lock: Official company holiday (Admins exempt)
+        const istDayOfWeek = istCheckIn.getDay();
+        if (istDayOfWeek === 0 && req.user.role !== 'Admin') {
+            return res.status(403).json({
+                success: false,
+                isSundayLocked: true,
+                error: 'Weekly Off: Sunday is an official company holiday. Attendance check-in is disabled.'
+            });
+        }
+
         // Check Morning Lock: Daily attendance opens at 9:30 AM IST (Admins exempt)
         const isBeforeNineThirty = istHours < 9 || (istHours === 9 && istMinutes < 30);
         if (isBeforeNineThirty && req.user.role !== 'Admin') {
@@ -287,6 +297,16 @@ exports.recordImmediateAttendance = async (req, res, next) => {
         const istCheckIn = new Date(checkInTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
         const istHours = istCheckIn.getHours();
         const istMinutes = istCheckIn.getMinutes();
+        // Sunday Weekly Off Lock: Official company holiday (Admins exempt)
+        const istDayOfWeek = istCheckIn.getDay();
+        if (istDayOfWeek === 0 && req.user.role !== 'Admin') {
+            return res.status(403).json({
+                success: false,
+                isSundayLocked: true,
+                error: 'Weekly Off: Sunday is an official company holiday. Attendance check-in is disabled.'
+            });
+        }
+
         const isLateCheckIn = istHours > 10 || (istHours === 10 && istMinutes >= 30);
 
         const attendanceData = {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, Circle, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Clock, Activity, Sun, Moon } from 'lucide-react';
@@ -7,7 +7,7 @@ import { io } from 'socket.io-client';
 import api, { getSocketUrl } from './api';
 
 const authorizedPlants = [
-    { name: "SN Enviro Head Office (Hyderabad)", lat: 17.4401202, lng: 78.5043297 },
+    { name: "SN Enviro Head Office (Secunderabad)", lat: 17.4401202, lng: 78.5043297 },
     { name: "Ultratech Cement Limited (unit: Patratu Cement Works)", lat: 23.6187, lng: 85.2746 },
     { name: "THDC India Limited, Amelia Coal Block", lat: 24.0784, lng: 82.6487 },
     { name: "Test", lat: 13.207554, lng: 79.101252 },
@@ -102,11 +102,11 @@ const authorizedPlants = [
 ];
 
 // Premium Custom Icons for Industrial Plants
-const createPlantIcon = (isActive, isDark) => {
+const createPlantIcon = (isActive, isDark, count = 0) => {
     // Unoccupied plants are vibrant amber/gold, Active ones are glowing emerald
-    const color = isActive ? '#10b981' : '#f59e0b'; // Colorful theme!
-    const size = isActive ? 22 : 16; // Slightly larger for better colorful visibility
-    const glow = isActive ? `box-shadow: 0 0 15px ${color};` : `box-shadow: 0 0 10px ${color}80;`; // Add a soft glow to unoccupied plants too
+    const color = isActive ? '#10b981' : '#f59e0b';
+    const size = count > 1 ? 28 : (isActive ? 22 : 16);
+    const glow = isActive ? `box-shadow: 0 0 15px ${color};` : `box-shadow: 0 0 10px ${color}80;`;
     
     return L.divIcon({
         className: 'custom-div-icon',
@@ -122,8 +122,13 @@ const createPlantIcon = (isActive, isDark) => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-weight: 900;
+                font-size: ${count > 1 ? '12px' : '0px'};
+                color: #ffffff;
+                line-height: 1;
             ">
-                ${!isActive ? `<div style="width: 4px; height: 4px; background: ${isDark ? '#cbd5e1' : '#ffffff'}; border-radius: 50%;"></div>` : ''}
+                ${count > 1 ? count : (!isActive ? `<div style="width: 4px; height: 4px; background: ${isDark ? '#cbd5e1' : '#ffffff'}; border-radius: 50%;"></div>` : `<div style="width: 6px; height: 6px; background: ${isDark ? '#0f172a' : '#ffffff'}; border-radius: 50%;"></div>`)}
             </div>
         `,
         iconSize: [size, size],
@@ -193,7 +198,7 @@ const TVLiveMap = () => {
                     return 'Kanigiri, Andhra Pradesh';
                 }
                 if (Math.abs(lat - 17.4401) < 0.05 && Math.abs(lng - 78.5043) < 0.05) {
-                    return 'SN Enviro Head Office (Hyderabad)';
+                    return 'SN Enviro Head Office (Secunderabad)';
                 }
             }
             return 'Kanigiri, Andhra Pradesh';
@@ -345,37 +350,90 @@ const TVLiveMap = () => {
                     <TileLayer url={tileUrl} maxZoom={19} />
                     {geoData && <GeoJSON data={geoData} style={getFeatureStyle} />}
 
-                    {/* Render Plants */}
-                    {authorizedPlants.map((plant, index) => {
-                        const activeEngineers = engineers.filter(e => e.site === plant.name);
-                        const isActive = activeEngineers.length > 0;
-                        const engineerNames = isActive ? activeEngineers.map(e => e.name).join(', ') : 'No Engineer Assigned';
-                        
-                        return (
-                            <Marker key={`plant-${index}`} position={[plant.lat, plant.lng]} icon={createPlantIcon(isActive, isDark)}>
-                                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                                    <div className={`flex flex-col gap-2 p-3 rounded-2xl shadow-2xl backdrop-blur-xl border ${isDark ? 'bg-slate-900/90 border-slate-700/50' : 'bg-white/95 border-slate-200'} transition-all`} style={{ minWidth: '220px', color: isDark ? '#f8fafc' : '#0f172a' }}>
-                                        <h3 className="font-bold text-sm tracking-tight">{plant.name}</h3>
-                                        <div className={`flex flex-col gap-1.5 mt-1 border-t pt-2 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
-                                            <div className="flex items-center gap-2 text-xs font-medium opacity-80">
-                                                <Activity size={12} className={isActive ? 'text-emerald-500' : ''} />
-                                                <span style={{ color: isActive ? (isDark ? '#34d399' : '#059669') : 'inherit' }}>{engineerNames}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Tooltip>
-                            </Marker>
-                        );
-                    })}
-
-                    {/* Render Engineers with Smart Multi-Personnel Location Clustering */}
+                    {/* Render Plants & Matched Engineers */}
                     {(() => {
+                        const assignedEngineerIds = new Set();
+                        
+                        const plantElements = authorizedPlants.map((plant, index) => {
+                            // Match engineers within 500m for Head Office or 1500m for industrial sites, or exact site name
+                            const activeEngineers = engineers.filter(e => {
+                                if (!e.position || !e.position[0]) return false;
+                                if (e.site === plant.name) return true;
+                                if (plant.name.includes('Head Office') && e.site && e.site.includes('Head Office')) return true;
+                                
+                                // Distance check (Haversine formula in meters)
+                                const R = 6371e3;
+                                const dLat = (e.position[0] - plant.lat) * Math.PI / 180;
+                                const dLng = (e.position[1] - plant.lng) * Math.PI / 180;
+                                const a = Math.sin(dLat/2)*Math.sin(dLat/2) + 
+                                          Math.cos(plant.lat*Math.PI/180) * Math.cos(e.position[0]*Math.PI/180) * 
+                                          Math.sin(dLng/2)*Math.sin(dLng/2);
+                                const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                                const maxRadius = plant.name.includes('Head Office') ? 500 : 1500;
+                                return dist <= maxRadius;
+                            });
+
+                            const isActive = activeEngineers.length > 0;
+                            activeEngineers.forEach(eng => assignedEngineerIds.add(eng.id || eng.name));
+
+                            return (
+                                <Marker key={`plant-${index}`} position={[plant.lat, plant.lng]} icon={createPlantIcon(isActive, isDark, activeEngineers.length)}>
+                                    <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false}>
+                                        <div className="flex flex-col gap-3 min-w-[260px] max-w-[340px]">
+                                            {/* Header */}
+                                            <div className={`pb-2 border-b flex items-center justify-between ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                                                <p className="font-semibold text-xs leading-snug flex items-center gap-1.5 opacity-90 truncate m-0">
+                                                    <span className="text-brand-primary">•</span>
+                                                    <span className="truncate">{plant.name}</span>
+                                                </p>
+                                                <div className="flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                                    <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">
+                                                        {isActive ? `${activeEngineers.length} Active` : 'Standby'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Engineers List or Standby */}
+                                            {isActive ? (
+                                                <div className="flex flex-col gap-2.5 max-h-[240px] overflow-y-auto">
+                                                    {activeEngineers.map((eng, idx) => (
+                                                        <div key={eng.id || idx} className={`flex items-center justify-between gap-3 p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}>
+                                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm text-white shrink-0 shadow-md ${isDark ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'}`}>
+                                                                    {eng.name.charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="font-bold text-sm m-0 leading-tight truncate">{eng.name}</p>
+                                                                    <p className="text-[9px] font-bold uppercase tracking-wider text-brand-primary truncate m-0">{eng.role}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="shrink-0 text-right">
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 opacity-70 m-0">
+                                                                    <Clock size={11} /> {eng.time}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 font-medium my-1">
+                                                    No engineers deployed at this plant today.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            );
+                        });
+
+                        // Only cluster unassigned engineers (e.g. Remote WFH, transit, or custom locations)
+                        const unassignedEngineers = engineers.filter(e => !assignedEngineerIds.has(e.id || e.name));
                         const clusters = {};
-                        engineers.forEach(engineer => {
+                        unassignedEngineers.forEach(engineer => {
                             if (!engineer.position || !engineer.position[0]) return;
                             const lat = engineer.position[0];
                             const lng = engineer.position[1];
-                            // Group by ~1km radius (2 decimal places)
                             const key = `${Number(lat).toFixed(2)}_${Number(lng).toFixed(2)}`;
                             if (!clusters[key]) {
                                 clusters[key] = {
@@ -388,7 +446,7 @@ const TVLiveMap = () => {
                             clusters[key].engineers.push(engineer);
                         });
 
-                        return Object.values(clusters).map((cluster) => {
+                        const clusterElements = Object.values(clusters).map((cluster) => {
                             const count = cluster.engineers.length;
                             const primaryRole = cluster.engineers[0].role;
 
@@ -397,11 +455,12 @@ const TVLiveMap = () => {
                                     key={cluster.key} 
                                     position={cluster.position}
                                     icon={createGlowingIcon(primaryRole, isDark, count)}
-                                    eventHandlers={{ mouseover: (e) => e.target.openPopup(), mouseout: (e) => e.target.closePopup() }}
+                                    eventHandlers={{ 
+                                        click: (e) => e.target.openPopup()
+                                    }}
                                 >
-                                    <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false} closeButton={false}>
+                                    <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false}>
                                         <div className="flex flex-col gap-3 min-w-[260px] max-w-[340px]">
-                                            {/* Header */}
                                             <div className={`pb-2 border-b flex items-center justify-between ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
                                                 <p className="font-semibold text-xs leading-snug flex items-center gap-1.5 opacity-90 truncate m-0">
                                                     <span className="text-brand-primary">•</span>
@@ -415,7 +474,6 @@ const TVLiveMap = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Engineers List */}
                                             <div className="flex flex-col gap-2.5 max-h-[240px] overflow-y-auto">
                                                 {cluster.engineers.map((eng, idx) => (
                                                     <div key={eng.id || idx} className={`flex items-center justify-between gap-3 p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}>
@@ -441,6 +499,8 @@ const TVLiveMap = () => {
                                 </Marker>
                             );
                         });
+
+                        return [...plantElements, ...clusterElements];
                     })()}
                 </MapContainer>
             </div>

@@ -20,6 +20,11 @@ const PlantSiteLogger = lazy(() => import('./components/Attendance/PlantSiteLogg
 const LiveTrackingMap = lazy(() => import('./components/Dashboards/LiveTrackingMap'));
 const ResetPassword = lazy(() => import('./components/ResetPassword'));
 
+// Institutional & Fallback Components
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./components/TermsOfService'));
+const NotFound = lazy(() => import('./components/NotFound'));
+
 // New Admin Panel Components
 const AdminLayout = lazy(() => import('./components/AdminPanel/AdminLayout'));
 import { Overview, EmployeeManagement, AttendanceManagement, MDAnnouncements, Notifications, LeaveManagement, AbsenceExplanations, ReportsAnalytics, DepartmentsSites, Settings } from './components/AdminPanel/AdminPlaceholders';
@@ -115,6 +120,11 @@ const AppContent = () => {
               <Route path="/explain-absence/:token" element={<PageWrapper><LateExplanationForm /></PageWrapper>} />
               <Route path="/reset-password/:token" element={<PageWrapper><ResetPassword /></PageWrapper>} />
               <Route path="/log-site" element={user ? <PageWrapper><PlantSiteLogger /></PageWrapper> : <Navigate to="/" />} />
+
+              {/* Institutional & Fallback Routes */}
+              <Route path="/privacy" element={<PageWrapper><PrivacyPolicy /></PageWrapper>} />
+              <Route path="/terms" element={<PageWrapper><TermsOfService /></PageWrapper>} />
+              <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />
             </Routes>
           </Suspense>
         </AnimatePresence>
