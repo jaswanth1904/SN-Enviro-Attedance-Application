@@ -185,7 +185,7 @@ exports.getLiveTracking = async (req, res) => {
 // @access  Admin/MD
 exports.exportReport = async (req, res) => {
     try {
-        const { type, range, startDate, endDate, role } = req.query; // type: attendance, leaves, employees
+        const { type, range, startDate, endDate, role, employee } = req.query; // type: attendance, leaves, employees, absent
         let csv = '\uFEFF'; // UTF-8 BOM for Microsoft Excel compatibility
         
         // Date filtering in Indian Standard Time (IST)
@@ -213,29 +213,31 @@ exports.exportReport = async (req, res) => {
         if (type === 'attendance') {
             const records = await Attendance.find(query).populate('user', 'name role empId email').sort({ timestamp: -1 });
             
-            // Filter non-admin and optional role
+            // Filter non-admin and optional role/employee
             const filteredRecords = records.filter(r => {
                 if (!r.user || r.user.role === 'Admin' || r.user.role === 'SuperAdmin') return false;
                 if (role && role !== 'All' && r.user.role !== role) return false;
+                if (employee && employee !== 'All' && r.user.name !== employee && r.user._id.toString() !== employee) return false;
                 return true;
             });
 
-            // Header: Removed redundant 'On-Time/Late' column, placed exact Login Time (IST)
-            csv += 'Employee Name,Role,Employee ID,Date,Login Time (IST),Logout Time (IST),Total Hours,Overtime Hours,Location / Site\n';
+            // Clean realistic columns matching company operations
+            csv += 'Employee Name,Role,Employee ID,Date,Login Time (IST),Location / Plant Site,Status\n';
             filteredRecords.forEach(r => {
                 const d = new Date(r.timestamp);
-                // Format Date as DD-MM-YYYY (e.g. 02-11-2026)
                 const dateParts = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).split('-'); // YYYY-MM-DD
                 const dateStr = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
                 
-                // Exact Login Time in IST with 12-hour AM/PM format
+                // Exact Login Time in IST
                 const loginTimeStr = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-                const logoutTimeStr = r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : 'Active Shift';
-                const totalHrs = r.totalHours ? r.totalHours.toFixed(2) : '0.00';
-                const ot = r.overtime ? r.overtime.toFixed(2) : '0.00';
                 const loc = (r.locationName || 'Unknown Location').replace(/"/g, '""');
+                
+                // Late calculation (> 10:30 AM IST)
+                const istTime = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+                const isLate = r.status === 'Late' || istTime.getHours() > 10 || (istTime.getHours() === 10 && istTime.getMinutes() >= 30);
+                const statusStr = isLate ? 'Late (After 10:30 AM)' : 'Present';
 
-                csv += `"${r.user?.name || 'N/A'}","${r.user?.role || 'N/A'}","${r.user?.empId || 'N/A'}","${dateStr}","${loginTimeStr}","${logoutTimeStr}","${totalHrs}","${ot}","${loc}"\n`;
+                csv += `"${r.user?.name || 'N/A'}","${r.user?.role || 'N/A'}","${r.user?.empId || 'N/A'}","${dateStr}","${loginTimeStr}","${loc}","${statusStr}"\n`;
             });
         } else if (type === 'leaves') {
             let leaveQuery = {};
@@ -309,6 +311,9 @@ exports.exportReport = async (req, res) => {
             if (role && role !== 'All') {
                 userQuery.role = role;
             }
+            if (employee && employee !== 'All') {
+                userQuery.name = employee;
+            }
             const employees = await User.find(userQuery).sort({ name: 1 });
 
             csv += 'Employee Name,Role,Employee ID,Date,Status,Leave Details,Email,Phone Number\n';
@@ -361,7 +366,7 @@ exports.exportReport = async (req, res) => {
 // @access  Admin/MD
 exports.getAbsentReport = async (req, res) => {
     try {
-        const { range, startDate, endDate, role } = req.query;
+        const { range, startDate, endDate, role, employee } = req.query;
         const dates = [];
         if (startDate) {
             let cur = new Date(`${startDate}T00:00:00.000+05:30`);
@@ -399,6 +404,9 @@ exports.getAbsentReport = async (req, res) => {
         };
         if (role && role !== 'All') {
             userQuery.role = role;
+        }
+        if (employee && employee !== 'All') {
+            userQuery.name = employee;
         }
         const employees = await User.find(userQuery).sort({ name: 1 });
 

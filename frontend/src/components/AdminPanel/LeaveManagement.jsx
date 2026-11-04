@@ -34,12 +34,59 @@ const LeaveManagement = () => {
         fetchLeaves();
     }, []);
 
+    // Smart contextual MD remarks based on employee reason & leave type
+    const getContextualApprovalRemark = (leave) => {
+        if (!leave) return 'Approved. Request accepted by MD / Management.';
+        const reason = (leave.reason || '').toLowerCase();
+        const type = (leave.leaveType || leave.type || '').toLowerCase();
+
+        // Health / Sick / Doctor / Hospital
+        if (
+            type.includes('sick') || 
+            type.includes('medical') || 
+            reason.includes('sick') || 
+            reason.includes('fever') || 
+            reason.includes('health') || 
+            reason.includes('doctor') || 
+            reason.includes('hospital') || 
+            reason.includes('cold') || 
+            reason.includes('ill') || 
+            reason.includes('unwell') ||
+            reason.includes('pain') ||
+            reason.includes('treatment')
+        ) {
+            return 'Approved. Please take good care of your health, rest well, and get well soon.';
+        }
+
+        // Birthday celebration
+        if (reason.includes('birthday') || reason.includes('bday')) {
+            return 'Approved! Wishing you a very Happy Birthday! Enjoy your special day with family and friends.';
+        }
+
+        // Anniversary / Wedding / Marriage / Function
+        if (reason.includes('anniversary') || reason.includes('marriage') || reason.includes('wedding') || reason.includes('function')) {
+            return 'Approved! Hearty congratulations and warm wishes for the celebration.';
+        }
+
+        // Work From Home (WFH)
+        if (type.includes('wfh') || type.includes('work from home') || reason.includes('wfh')) {
+            return 'Approved for Work From Home duty. Please stay reachable on call and share your daily progress.';
+        }
+
+        // Family / Personal Emergency
+        if (reason.includes('family') || reason.includes('emergency') || reason.includes('urgent') || reason.includes('personal')) {
+            return 'Approved. Take care of your personal commitments and keep management informed.';
+        }
+
+        return 'Approved. Request accepted by MD / Management.';
+    };
+
     const openActionModal = (leave, status) => {
         setActionModal({
             isOpen: true,
             leave,
             status,
-            remarks: status === 'Approved' ? 'Approved. Come as soon as possible.' : '',
+            remarks: status === 'Approved' ? getContextualApprovalRemark(leave) : '',
             submitting: false
         });
     };
@@ -64,6 +111,14 @@ const LeaveManagement = () => {
     };
 
     const filteredLeaves = leaves.filter(l => filter === 'All' || l.status === filter);
+
+    // Clean Indian business date formatting (DD MMM YYYY, e.g. 04 Nov 2026)
+    const formatDateClean = (dateVal) => {
+        if (!dateVal) return 'N/A';
+        const d = new Date(dateVal);
+        if (isNaN(d.getTime())) return String(dateVal);
+        return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' });
+    };
 
     const getStatusStyle = (status) => {
         switch(status) {
@@ -133,7 +188,7 @@ const LeaveManagement = () => {
                                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{leave.leaveType || leave.type}</p>
                                         <p className="text-sm font-bold text-slate-800">
-                                            {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
+                                            {formatDateClean(leave.startDate)} to {formatDateClean(leave.endDate)}
                                         </p>
                                     </div>
                                     <div>
@@ -196,12 +251,22 @@ const LeaveManagement = () => {
                                     {actionModal.status === 'Approved' ? 'Approve Leave Request' : 'Reject Leave Request'}
                                 </h3>
                                 <p className="text-xs text-slate-500 font-medium">
-                                    {actionModal.leave?.user?.name} ({new Date(actionModal.leave?.startDate).toLocaleDateString()} to {new Date(actionModal.leave?.endDate).toLocaleDateString()})
+                                    {actionModal.leave?.user?.name} ({formatDateClean(actionModal.leave?.startDate)} to {formatDateClean(actionModal.leave?.endDate)})
                                 </p>
                             </div>
                         </div>
 
                         <div className="space-y-4 my-5">
+                            {/* Employee's Original Leave Reason Preview */}
+                            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs">
+                                <p className="font-bold text-slate-400 uppercase tracking-wider text-[10px] mb-1">
+                                    Employee Request ({actionModal.leave?.leaveType || actionModal.leave?.type}):
+                                </p>
+                                <p className="text-slate-800 font-medium italic">
+                                    "{actionModal.leave?.reason}"
+                                </p>
+                            </div>
+
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                                     {actionModal.status === 'Approved' ? 'MD Remarks / Instructions to Employee (Optional)' : 'Rejection Reason (Required)'}
@@ -210,19 +275,64 @@ const LeaveManagement = () => {
                                     rows={3}
                                     value={actionModal.remarks}
                                     onChange={(e) => setActionModal(prev => ({ ...prev, remarks: e.target.value }))}
-                                    placeholder={actionModal.status === 'Approved' ? 'e.g. Come as soon as possible / Approved, hand over CEMS report first' : 'e.g. Urgent plant commissioning requires your presence'}
+                                    placeholder={actionModal.status === 'Approved' ? 'Enter MD instructions or select a quick response below...' : 'e.g. Urgent plant commissioning requires your presence'}
                                     className="w-full p-3.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                                 />
                             </div>
+
+                            {/* Quick-Response Suggestion Chips */}
+                            {actionModal.status === 'Approved' ? (
+                                <div className="space-y-1.5">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Reply Suggestions:</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {[
+                                            { label: '💊 Health / Get Well Soon', text: 'Approved. Please take good care of your health, rest well, and get well soon.' },
+                                            { label: '🎂 Happy Birthday!', text: 'Approved! Wishing you a very Happy Birthday! Enjoy your special day with family and friends.' },
+                                            { label: '🏡 Personal / Family', text: 'Approved. Take care of your personal commitments and keep management informed.' },
+                                            { label: '💻 Remote / WFH Duty', text: 'Approved for Work From Home duty. Please stay reachable on call and share your daily progress.' },
+                                            { label: '🤝 Standard Approval', text: 'Approved. Request accepted by MD / Management.' }
+                                        ].map((chip, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setActionModal(prev => ({ ...prev, remarks: chip.text }))}
+                                                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-slate-200 text-[11px] font-bold text-slate-600 transition-all text-left"
+                                            >
+                                                {chip.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-1.5">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Rejection Reasons:</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {[
+                                            { label: '⚠️ Urgent Site Duty', text: 'Urgent plant site commissioning / CEMS analyzer duty requires your on-site presence.' },
+                                            { label: '👥 Team Shortage', text: 'Cannot approve due to critical shift staffing shortage on this date.' },
+                                            { label: '📞 Contact MD Sir', text: 'Please discuss directly with Managing Director before resubmitting.' }
+                                        ].map((chip, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setActionModal(prev => ({ ...prev, remarks: chip.text }))}
+                                                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-slate-200 text-[11px] font-bold text-slate-600 transition-all text-left"
+                                            >
+                                                {chip.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {actionModal.status === 'Approved' && (
                                 <div className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${actionModal.leave?.leaveType === 'Work From Home (WFH)' ? 'bg-cyan-50 border-cyan-100 text-cyan-950' : 'bg-blue-50 border-blue-100 text-blue-900'}`}>
                                     <span className="text-base">{actionModal.leave?.leaveType === 'Work From Home (WFH)' ? '🏠' : '🔒'}</span>
                                     <p className="leading-relaxed">
                                         {actionModal.leave?.leaveType === 'Work From Home (WFH)' ? (
-                                            <>Approving will authorize <strong>Work From Home (WFH) duty</strong> for this employee from {new Date(actionModal.leave?.startDate).toLocaleDateString()} to {new Date(actionModal.leave?.endDate).toLocaleDateString()}, permitting remote check-in from home, and dispatch an official confirmation email.</>
+                                            <>Approving will authorize <strong>Work From Home (WFH) duty</strong> for this employee from {formatDateClean(actionModal.leave?.startDate)} to {formatDateClean(actionModal.leave?.endDate)}, permitting remote check-in from home, and dispatch an official confirmation email.</>
                                         ) : (
-                                            <>Approving will automatically <strong>lock attendance check-in</strong> for this employee from {new Date(actionModal.leave?.startDate).toLocaleDateString()} to {new Date(actionModal.leave?.endDate).toLocaleDateString()}, and dispatch an official confirmation email.</>
+                                            <>Approving will automatically <strong>lock attendance check-in</strong> for this employee from {formatDateClean(actionModal.leave?.startDate)} to {formatDateClean(actionModal.leave?.endDate)}, and dispatch an official confirmation email.</>
                                         )}
                                     </p>
                                 </div>

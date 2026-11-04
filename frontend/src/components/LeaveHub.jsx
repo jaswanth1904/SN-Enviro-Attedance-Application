@@ -133,6 +133,19 @@ const LeaveHub = () => {
                 </motion.button>
             </div>
 
+            {/* Mandatory MD Authorization Protocol Notice for Employees */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-xs shadow-2xs">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs mt-0.5">
+                    MD
+                </div>
+                <div>
+                    <h4 className="font-bold text-amber-950 text-sm">📌 Mandatory Protocol: Direct MD Authorization Required</h4>
+                    <p className="text-amber-900/85 mt-1 leading-relaxed text-xs">
+                        Submitting your leave request on this portal alone is <strong>NOT sufficient</strong>. As directed by <strong>Managing Director (MD) Sir</strong>, every employee must also inform MD Sir directly via <strong>WhatsApp</strong> or <strong>Email</strong> to receive formal authorization.
+                    </p>
+                </div>
+            </div>
+
             {/* Quota Stats Grid (2-columns on mobile, 4 on desktop) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                 {stats.map((stat, i) => (

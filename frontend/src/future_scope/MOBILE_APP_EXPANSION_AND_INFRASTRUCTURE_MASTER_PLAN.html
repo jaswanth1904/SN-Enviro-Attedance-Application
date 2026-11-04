@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SN Enviro — Mobile App, GPS & Cloud Infrastructure Master Plan</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            background-color: #f8fafc;
+            padding: 40px 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 48px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .header {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 26px;
+            margin-top: 0;
+            font-weight: 800;
+        }
+        .meta {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        h2 {
+            color: #1e3a8a;
+            font-size: 20px;
+            margin-top: 36px;
+            border-left: 4px solid #2563eb;
+            padding-left: 12px;
+        }
+        h3 {
+            color: #0f172a;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        p, li {
+            font-size: 15px;
+            color: #334155;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .highlight-box {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 18px;
+            margin: 20px 0;
+            color: #166534;
+        }
+        .highlight-box-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+        .warning-box {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 18px;
+            margin: 20px 0;
+            color: #991b1b;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+        }
+        .badge-green { background: #dcfce7; color: #15803d; }
+        .badge-blue { background: #dbeafe; color: #1d4ed8; }
+        .badge-amber { background: #fef3c7; color: #b45309; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <span class="badge badge-blue">SN ENVIRO SYSTEMS PVT LTD</span>
+        <h1>Mobile App, Live GPS Telemetry & Cloud Master Plan</h1>
+        <div class="meta">Version: 1.0.0 &bull; November 2026 &bull; Author: Software Systems Team</div>
+    </div>
+
+    <h2>1. Executive Summary & Overview</h2>
+    <p>This master plan addresses the 4 core infrastructure and operational questions for the SN Enviro Attendance Application:</p>
+    <ul>
+        <li><strong>Server Sleep & 503 Fix:</strong> Upgrading Render to the Starter tier ($7/mo = ~₹590/mo) for 100% 24/7 uptime without cold starts.</li>
+        <li><strong>Mobile App Store Costs:</strong> Publishing the app on Google Play Store ($25 = ~₹2,100 one-time) and Apple App Store ($99/year).</li>
+        <li><strong>Uber/Swiggy Live GPS Tracking:</strong> Why web browsers cannot track when cleared, and how an Android Foreground Service keeps location alive even if closed.</li>
+        <li><strong>All-in-One Enterprise App:</strong> Adding Salary Hub, PF Passbook, Bank Verification, and Fuel Reimbursements into the mobile app.</li>
+    </ul>
+
+    <h2>2. Render Starter Plan (~₹590/Month) — Permanent 60-Second Fix</h2>
+    <div class="warning-box">
+        <strong>Why the Free Tier was failing with 503:</strong>
+        <p style="margin: 6px 0 0 0;">Render Free Tier automatically puts containers to sleep after 15 minutes of inactivity. Booting up takes 50 to 90 seconds. External pingers like UptimeRobot and cron-job.org time out after 30 seconds and get blocked by Cloudflare's bot filter, resulting in 503 Service Unavailable errors.</p>
+    </div>
+
+    <p><strong>What Render Starter ($7 / month = ~₹588 INR / month) Delivers:</strong></p>
+    <ul>
+        <li><strong>Always-On Container:</strong> Runs 24/7/365 without ever sleeping or spinning down.</li>
+        <li><strong>Zero 503 Errors:</strong> Every API call answers in &lt; 30 milliseconds round the clock.</li>
+        <li><strong>Real-Time Live Map:</strong> WebSockets stay connected continuously with zero dropped telemetry.</li>
+        <li><strong>No Ping Bots Needed:</strong> You can completely turn off and delete cron-job.org and UptimeRobot.</li>
+    </ul>
+
+    <div class="highlight-box">
+        <div class="highlight-box-title">&#10004; Transparent Billing Details:</div>
+        Render charges month-by-month (~₹588 to ₹595 INR) to your card. <strong>You do NOT have to pay ₹14,000 upfront.</strong> You can cancel or pause anytime with one click.
+    </div>
+
+    <h3>60-Second Setup Guide:</h3>
+    <ol>
+        <li>Open <a href="https://dashboard.render.com" target="_blank">dashboard.render.com</a> &rarr; Click <strong>SN Enviro Attendance Backend</strong>.</li>
+        <li>Click <strong>Settings</strong> in the left sidebar.</li>
+        <li>Scroll to <strong>Instance Type</strong> (currently says <em>Free</em>).</li>
+        <li>Select <strong>Starter ($7/mo)</strong> and click <strong>Save Changes</strong>.</li>
+    </ol>
+
+    <h2>3. Mobile App Publishing Costs (Google Play & Apple App Store)</h2>
+    <p>We wrap our existing React web app using <strong>Capacitor</strong>. All our existing dashboards, live maps, and components run directly inside the native mobile app without rewriting the application.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Platform</th>
+                <th>Store Name</th>
+                <th>Cost in USD</th>
+                <th>Cost in Indian Rupees (INR)</th>
+                <th>Billing Term</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Android</strong></td>
+                <td>Google Play Console</td>
+                <td>$25</td>
+                <td><strong style="color: #15803d;">~₹2,100 INR</strong></td>
+                <td><span class="badge badge-green">Lifetime (Pay Once)</span></td>
+            </tr>
+            <tr>
+                <td><strong>Apple iOS</strong></td>
+                <td>Apple Developer Program</td>
+                <td>$99 / year</td>
+                <td><strong style="color: #b45309;">~₹8,300 INR / year</strong></td>
+                <td><span class="badge badge-amber">Annual Renewal</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="highlight-box">
+        <div class="highlight-box-title">Recommendation:</div>
+        Start with the <strong>Google Play Store ($25 = ~₹2,100 one-time)</strong>. Over 95% of field application engineers use Android smartphones. Apple iOS can be registered later if needed.
+    </div>
+
+    <h2>4. Live GPS Tracking: Web Browser vs. Uber / Swiggy Model</h2>
+    <p><em>"If employees are traveling, will they be visible on the live map if they clear the app from the background?"</em></p>
+
+    <h3>A. The Web Browser (Current State) — NO:</h3>
+    <p>When an employee uses Chrome or Safari on their phone, the GPS works only while the website is active on screen. As soon as they lock the phone or clear the browser tab, Android and iOS freeze the browser's JavaScript engine to protect battery life. <strong>Web browsers cannot track location in the background.</strong></p>
+
+    <h3>B. The Native Mobile App (Uber / Swiggy Model) — YES:</h3>
+    <p>In the native Android app, we use an <strong>Android Foreground Service</strong>. When an engineer checks in at 9:15 AM:</p>
+    <ul>
+        <li>A persistent status bar notification appears: <em>"📍 SN Enviro Field Tracking Active &bull; Shift In Progress"</em>.</li>
+        <li>The background engine captures high-accuracy GPS coordinates every 30 seconds and pings the live map.</li>
+        <li><strong>What if the user clears the app from Recent Apps?</strong> The service has the <code>START_STICKY</code> flag. The Android OS automatically restarts the tracking engine within 2 seconds. Telemetry only stops when the engineer clicks <strong>Check-Out</strong>.</li>
+    </ul>
+
+    <h2>5. All-in-One Enterprise App (Salary, PF, Bank, Claims)</h2>
+    <p><em>"Can we add PF, accounts, salary, and claims in one mobile app just like the web app?"</em></p>
+    <p><strong>YES, 100% MODULAR.</strong> The mobile app uses a clean bottom navigation bar with all enterprise tools built-in:</p>
+    <ul>
+        <li><strong>🏠 Home / Check-In:</strong> Daily biometric attendance and working hours tally.</li>
+        <li><strong>📍 Live Map:</strong> Assigned plant locations and live travel route history.</li>
+        <li><strong>💵 Salary Hub:</strong> Monthly take-home salary breakdown and 1-click PDF Pay Slip downloads.</li>
+        <li><strong>🏛️ PF & Statutory:</strong> Universal Account Number (UAN), monthly PF deposit receipts, and ESIC card.</li>
+        <li><strong>💳 Bank & KYC:</strong> Bank account, IFSC verification, and PAN records for direct salary credit.</li>
+        <li><strong>⛽ Fuel & Travel Claims:</strong> Take photos of fuel slips or tolls; GPS coordinates and timestamps are auto-tagged to prevent false claims.</li>
+    </ul>
+
+    <h2>6. Direct Answers Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Question</th>
+                <th>Direct Answer</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>How much to fix 503 errors right now?</strong></td>
+                <td><strong>$7 / month (~₹590/mo)</strong> on Render Starter. Done in 60 seconds with 1 click.</td>
+            </tr>
+            <tr>
+                <td><strong>Can we pay yearly on Render?</strong></td>
+                <td>Render charges <strong>monthly (~₹590/mo)</strong> to your card. No need to pay ₹14,000 upfront.</td>
+            </tr>
+            <tr>
+                <td><strong>Google Play Store cost?</strong></td>
+                <td><strong>$25 USD (~₹2,100 INR)</strong> — One-time payment, lifetime account.</td>
+            </tr>
+            <tr>
+                <td><strong>Apple App Store cost?</strong></td>
+                <td><strong>$99 USD / year (~₹8,300 INR / year)</strong>.</td>
+            </tr>
+            <tr>
+                <td><strong>Can web app track GPS when cleared?</strong></td>
+                <td><strong>No.</strong> Mobile browsers freeze background scripts.</td>
+            </tr>
+            <tr>
+                <td><strong>Can mobile app track GPS when cleared?</strong></td>
+                <td><strong>Yes.</strong> Native Android Foreground Service (like Uber/Swiggy) keeps tracking until Check-Out.</td>
+            </tr>
+            <tr>
+                <td><strong>Can we add Salary, PF, and Accounts in one app?</strong></td>
+                <td><strong>Yes, 100%.</strong> All modules live in one unified mobile app.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

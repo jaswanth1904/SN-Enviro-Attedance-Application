@@ -76,7 +76,7 @@ const LeaveApplication = () => {
                     <div className="w-24 h-24 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary mx-auto mb-8 shadow-2xl shadow-brand-primary/10">
                         <Check size={48} />
                     </div>
-                    <h2 className="text-4xl font-bold text-md-on-surface tracking-tight mb-4">Protocol Decoded</h2>
+                    <h2 className="text-4xl font-bold text-md-on-surface tracking-tight mb-4">Request Transmitted</h2>
                     <p className="text-md-on-surface-variant font-medium text-lg leading-relaxed">
                         Your leave request has been transmitted to HQ Command. Redirecting to control center...
                     </p>
@@ -261,6 +261,28 @@ const LeaveApplication = () => {
                                     value={formData.reason}
                                     onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Mandatory MD Authorization Directive Banner */}
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300/80 rounded-2xl sm:rounded-[28px] p-4 sm:p-6 shadow-sm">
+                            <div className="flex items-start gap-3.5">
+                                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0 text-lg shadow-md shadow-amber-500/20">
+                                    !
+                                </div>
+                                <div className="space-y-2 flex-1">
+                                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                        <h4 className="font-black text-amber-950 text-xs sm:text-sm uppercase tracking-wide">
+                                            Mandatory Protocol: Direct MD Authorization Required
+                                        </h4>
+                                        <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-200/90 text-amber-900 border border-amber-300">
+                                            MD Policy
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-amber-900 leading-relaxed font-medium">
+                                        As explicitly directed by <strong>Managing Director (MD) Sir</strong>, submitting your leave request on this portal alone is <strong>not sufficient</strong>. Every employee must also communicate directly with <strong>MD Sir</strong> via <strong>WhatsApp</strong> or <strong>Email</strong> to receive official authorization before proceeding on leave.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 

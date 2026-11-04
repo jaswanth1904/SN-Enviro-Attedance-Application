@@ -11,10 +11,11 @@ import api, { getSocketUrl } from '../api';
 const AttendanceManagement = () => {
     const [attendanceData, setAttendanceData] = useState([]);
     const [employees, setEmployees] = useState([]);
+    const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('All'); // All, Present, Late, Absent
-    const [dateFilter, setDateFilter] = useState('All'); // All, Today, Yesterday, Week
+    const [statusFilter, setStatusFilter] = useState('All'); // All, Present, Late, Absent, OnLeave
+    const [dateFilter, setDateFilter] = useState('Today'); // All, Today, Yesterday, Week
     const [isLiveConnected, setIsLiveConnected] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
     const [highlightId, setHighlightId] = useState(null);
@@ -28,12 +29,13 @@ const AttendanceManagement = () => {
         return () => clearInterval(timer);
     }, []);
 
-    // Fetch initial data & all employees
+    // Fetch initial data, all employees, and company leaves
     const fetchData = async () => {
         try {
-            const [reportsRes, usersRes] = await Promise.all([
+            const [reportsRes, usersRes, leavesRes] = await Promise.all([
                 api.get('/attendance/reports'),
-                api.get('/users')
+                api.get('/users'),
+                api.get('/leaves').catch(() => ({ data: { success: false } }))
             ]);
 
             // Filter out Managing Director / Admin from attendance reports
@@ -57,6 +59,11 @@ const AttendanceManagement = () => {
                     u.email !== 'md@snenviro.in'
                 );
                 setEmployees(cleanUsers);
+            }
+
+            // Store approved leaves
+            if (leavesRes.data && leavesRes.data.success && Array.isArray(leavesRes.data.data)) {
+                setLeaves(leavesRes.data.data);
             }
         } catch (err) {
             console.error('Failed to fetch attendance data:', err);
@@ -177,9 +184,45 @@ const AttendanceManagement = () => {
         return onTimeUserIds.size;
     }, [todaysLogs]);
 
+    // Active approved leaves for today in IST (e.g. Athota Jephaniah, Gade Usharani)
+    const approvedLeavesTodayMap = useMemo(() => {
+        const map = new Map();
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        leaves.forEach(l => {
+            if (l.status === 'Approved') {
+                const sDate = new Date(l.startDate);
+                const eDate = new Date(l.endDate);
+                if (sDate <= todayEnd && eDate >= todayStart) {
+                    const userId = l.user?._id?.toString() || l.user?.id?.toString() || l.user?.toString();
+                    if (userId) {
+                        map.set(userId, l);
+                    }
+                }
+            }
+        });
+        return map;
+    }, [leaves]);
+
+    // Employees on approved leave today
+    const onLeaveEmployeesToday = useMemo(() => {
+        return employees.filter(emp => approvedLeavesTodayMap.has(emp._id?.toString())).map(emp => ({
+            ...emp,
+            leave: approvedLeavesTodayMap.get(emp._id?.toString())
+        }));
+    }, [employees, approvedLeavesTodayMap]);
+
+    const onLeaveTodayCount = onLeaveEmployeesToday.length;
+
+    // Genuine unlogged absentees: NOT checked in today AND NOT on approved leave!
     const absentEmployeesToday = useMemo(() => {
-        return employees.filter(emp => !checkedInUserIdsToday.has(emp._id?.toString()));
-    }, [employees, checkedInUserIdsToday]);
+        return employees.filter(emp => 
+            !checkedInUserIdsToday.has(emp._id?.toString()) &&
+            !approvedLeavesTodayMap.has(emp._id?.toString())
+        );
+    }, [employees, checkedInUserIdsToday, approvedLeavesTodayMap]);
 
     const absentTodayCount = absentEmployeesToday.length;
 
@@ -207,6 +250,8 @@ const AttendanceManagement = () => {
                 matchesStatus = !isLate;
             } else if (statusFilter === 'Absent') {
                 matchesStatus = false; // Absent shows dedicated list
+            } else if (statusFilter === 'OnLeave') {
+                matchesStatus = false; // OnLeave shows dedicated list
             }
 
             // Date filter (if status is not strictly Present-Today)
@@ -322,9 +367,9 @@ const AttendanceManagement = () => {
                 <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
                     {/* Status Pills */}
                     <div className="flex flex-wrap items-center gap-2">
-                        {/* ALL */}
+                        {/* ALL TODAY */}
                         <button
-                            onClick={() => setStatusFilter('All')}
+                            onClick={() => { setStatusFilter('All'); setDateFilter('Today'); }}
                             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                                 statusFilter === 'All'
                                     ? 'bg-slate-900 text-white shadow-sm shadow-slate-900/20'
@@ -332,7 +377,7 @@ const AttendanceManagement = () => {
                             }`}
                         >
                             <Users size={14} />
-                            ALL ({attendanceData.length})
+                            ALL TODAY ({todaysLogs.length})
                         </button>
 
                         {/* PRESENT (LIVE) */}
@@ -364,7 +409,20 @@ const AttendanceManagement = () => {
                             LATE ({lateTodayCount})
                         </button>
 
-                        {/* ABSENT */}
+                        {/* ON APPROVED LEAVE */}
+                        <button
+                            onClick={() => { setStatusFilter('OnLeave'); setDateFilter('Today'); }}
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+                                statusFilter === 'OnLeave'
+                                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20'
+                                    : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
+                            }`}
+                        >
+                            <ShieldCheck size={14} />
+                            ON APPROVED LEAVE ({onLeaveTodayCount})
+                        </button>
+
+                        {/* ABSENT / NOT LOGGED IN */}
                         <button
                             onClick={() => { setStatusFilter('Absent'); setDateFilter('Today'); }}
                             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
@@ -374,7 +432,7 @@ const AttendanceManagement = () => {
                             }`}
                         >
                             <XCircle size={14} />
-                            ABSENT TODAY ({absentTodayCount})
+                            NOT LOGGED IN ({absentTodayCount})
                         </button>
                     </div>
 
@@ -425,54 +483,142 @@ const AttendanceManagement = () => {
                     <RefreshCw className="animate-spin text-brand-primary mx-auto mb-3" size={28} />
                     <p className="text-slate-500 font-bold">Synchronizing real-time attendance telemetry...</p>
                 </div>
-            ) : statusFilter === 'Absent' ? (
-                /* Dedicated View for Absent Employees */
+            ) : statusFilter === 'OnLeave' ? (
+                /* Dedicated View for Employees on Approved Leave Today */
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="p-4 bg-rose-50/50 border-b border-rose-100 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-rose-800 font-black text-sm">
-                            <XCircle size={18} className="text-rose-500" />
-                            <span>Employees Not Logged In Today ({absentEmployeesToday.length})</span>
+                    <div className="p-4 bg-indigo-50/60 border-b border-indigo-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-indigo-900 font-black text-sm">
+                            <ShieldCheck size={18} className="text-indigo-600" />
+                            <span>Employees On Approved Leave Today ({onLeaveEmployeesToday.length})</span>
                         </div>
-                        <span className="text-xs font-bold text-rose-600 bg-rose-100/70 px-3 py-1 rounded-full">
-                            Target Login Time: Before 10:00 AM IST
+                        <span className="text-xs font-bold text-indigo-700 bg-indigo-100/70 px-3 py-1 rounded-full border border-indigo-200/50">
+                            Authorized by MD / Management
                         </span>
                     </div>
 
-                    {absentEmployeesToday.length === 0 ? (
+                    {onLeaveEmployeesToday.length === 0 ? (
                         <div className="p-12 text-center text-slate-400 font-bold">
-                            <CheckCircle2 size={36} className="text-emerald-500 mx-auto mb-2" />
-                            <p className="text-slate-700 font-black text-base">Full Personnel Attendance Today!</p>
-                            <p className="text-slate-400 text-xs">All registered employees have checked in.</p>
+                            <CheckCircle2 size={36} className="text-slate-300 mx-auto mb-2" />
+                            <p className="text-slate-700 font-black text-base">No Personnel on Leave Today</p>
+                            <p className="text-slate-400 text-xs">All registered employees are scheduled for active plant/office duty.</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100">
-                            {absentEmployeesToday.map((emp) => (
-                                <div key={emp._id} className="p-4 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-black text-sm">
-                                            {emp.name?.charAt(0) || 'U'}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-slate-900 text-sm">{emp.name}</p>
-                                            <p className="text-[11px] font-bold text-slate-500">{emp.role || 'Personnel'} • {emp.email}</p>
-                                        </div>
-                                    </div>
+                            {onLeaveEmployeesToday.map((emp) => {
+                                const l = emp.leave || {};
+                                const sDate = l.startDate ? new Date(l.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' }) : 'Today';
+                                const eDate = l.endDate ? new Date(l.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' }) : 'Today';
 
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right hidden sm:block">
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
-                                                <XCircle size={13} />
-                                                Absent (No Login Recorded)
+                                return (
+                                    <div key={emp._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm">
+                                                {emp.name?.charAt(0) || 'U'}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-bold text-slate-900 text-sm">{emp.name}</p>
+                                                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold text-[10px] border border-indigo-200">
+                                                        {l.leaveType || 'Approved Leave'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] font-bold text-slate-500 mt-0.5">{emp.role || 'Personnel'} • {emp.email}</p>
+                                                {l.reason && (
+                                                    <p className="text-[11px] text-slate-600 italic mt-1 bg-slate-50 p-1.5 rounded-lg border border-slate-100 max-w-md">
+                                                        "{l.reason}"
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col sm:items-end gap-1">
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
+                                                <CheckCircle2 size={13} />
+                                                Approved ({sDate} to {eDate})
                                             </span>
-                                            <p className="text-[10px] text-slate-400 font-bold mt-0.5">Status as of {currentTime}</p>
+                                            <span className="text-[10px] font-bold text-slate-400">
+                                                {l.leaveType === 'Work From Home (WFH)' ? '🏠 Remote Duty Allowed' : '🔒 Check-In Portal Locked'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            ) : statusFilter === 'Absent' ? (
+                /* Dedicated View for Absent Employees */
+                <div className="space-y-4">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-4 bg-rose-50/50 border-b border-rose-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-rose-800 font-black text-sm">
+                                <XCircle size={18} className="text-rose-500" />
+                                <span>Employees Not Logged In Today ({absentEmployeesToday.length})</span>
+                            </div>
+                            <span className="text-xs font-bold text-rose-600 bg-rose-100/70 px-3 py-1 rounded-full">
+                                Target Login Time: Before 10:00 AM IST
+                            </span>
+                        </div>
+
+                        {absentEmployeesToday.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400 font-bold">
+                                <CheckCircle2 size={36} className="text-emerald-500 mx-auto mb-2" />
+                                <p className="text-slate-700 font-black text-base">Full Personnel Attendance Today!</p>
+                                <p className="text-slate-400 text-xs">All scheduled employees have checked in.</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-slate-100">
+                                {absentEmployeesToday.map((emp) => (
+                                    <div key={emp._id} className="p-4 flex items-center justify-between hover:bg-slate-50/70 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-black text-sm">
+                                                {emp.name?.charAt(0) || 'U'}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-900 text-sm">{emp.name}</p>
+                                                <p className="text-[11px] font-bold text-slate-500">{emp.role || 'Personnel'} • {emp.email}</p>
+                                            </div>
                                         </div>
 
-                                        <button className="text-[11px] font-black uppercase tracking-wider text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-1.5 rounded-xl transition-all">
-                                            Send Reminder
-                                        </button>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right hidden sm:block">
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+                                                    <XCircle size={13} />
+                                                    Unexcused Absence (No Login)
+                                                </span>
+                                                <p className="text-[10px] text-slate-400 font-bold mt-0.5">Status as of {currentTime}</p>
+                                            </div>
+
+                                            <button className="text-[11px] font-black uppercase tracking-wider text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-1.5 rounded-xl transition-all">
+                                                Send Reminder
+                                            </button>
+                                        </div>
                                     </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Informative Notice regarding Approved Leaves */}
+                    {onLeaveEmployeesToday.length > 0 && (
+                        <div className="bg-indigo-50/60 border border-indigo-200/60 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
+                            <div className="flex items-center gap-2.5">
+                                <ShieldCheck size={18} className="text-indigo-600 shrink-0" />
+                                <div>
+                                    <p className="font-bold text-indigo-950">
+                                        {onLeaveEmployeesToday.length} Employees On Approved Leave Today (Excluded from Unlogged List)
+                                    </p>
+                                    <p className="text-indigo-800/80 text-[11px] mt-0.5">
+                                        {onLeaveEmployeesToday.map(e => `${e.name} (${e.leave?.leaveType || 'Leave'})`).join(', ')}
+                                    </p>
                                 </div>
-                            ))}
+                            </div>
+                            <button
+                                onClick={() => setStatusFilter('OnLeave')}
+                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors shrink-0 text-[11px]"
+                            >
+                                View Leaves
+                            </button>
                         </div>
                     )}
                 </div>
