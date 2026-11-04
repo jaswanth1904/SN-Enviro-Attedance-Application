@@ -113,10 +113,6 @@ const LeaveApplication = () => {
                         <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
                     </motion.button>
                     <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <ShieldCheck size={16} className="text-brand-primary shrink-0" />
-                            <span className="text-brand-primary/70 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] truncate">Operational Protocol 09</span>
-                        </div>
                         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-md-on-surface tracking-tight leading-tight">
                             {formData.leaveType === 'Work From Home (WFH)' ? (
                                 <>Work From Home <span className="text-brand-primary block sm:inline">(WFH) Request</span></>
@@ -304,7 +300,7 @@ const LeaveApplication = () => {
                             >
                                 {loading ? <RefreshCw className="animate-spin" size={18} /> : (
                                     <>
-                                        <span>{formData.leaveType === 'Work From Home (WFH)' ? 'Submit WFH Request' : 'Submit Application'}</span> <Send size={18} />
+                                        <span>{formData.leaveType === 'Work From Home (WFH)' ? 'Submit WFH Request' : 'Submit Leave Request'}</span> <Send size={18} />
                                     </>
                                 )}
                             </motion.button>

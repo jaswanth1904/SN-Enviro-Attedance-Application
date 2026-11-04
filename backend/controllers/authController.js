@@ -113,6 +113,11 @@ exports.updateProfile = async (req, res, next) => {
         const update = { $set: {}, $unset: {} };
         const allowedFields = ['name', 'empId', 'email', 'phoneNumber', 'alternativeContact', 'bloodGroup', 'role', 'joiningDate', 'employmentType', 'gradeLevel', 'socialLinks', 'homeAddress', 'coreCompetencies', 'currentProjects'];
 
+        // Prevent non-admin users from escalating their system role
+        if (req.user.role !== 'Admin' && req.user.role !== 'SuperAdmin') {
+            delete req.body.role;
+        }
+
         allowedFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 if (req.body[field] === '' || req.body[field] === null) {
@@ -332,6 +337,67 @@ exports.resetPassword = async (req, res, next) => {
         await user.save();
 
         sendTokenResponse(user, 200, res);
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update password (authenticated user)
+// @route   PUT /api/auth/updatepassword
+// @access  Private
+exports.updatePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please provide both your current password and your new password.'
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: 'New password must be at least 6 characters long.'
+            });
+        }
+
+        // Get user from DB with password included
+        const user = await User.findById(req.user.id).select('+password');
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found.'
+            });
+        }
+
+        // Check if current password matches
+        const isMatch = await user.matchPassword(currentPassword);
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                error: 'Current password is incorrect. Please verify your current password.'
+            });
+        }
+
+        // Prevent setting the identical password
+        const isSame = await user.matchPassword(newPassword);
+        if (isSame) {
+            return res.status(400).json({
+                success: false,
+                error: 'New password cannot be the same as your current password. Please choose a new password.'
+            });
+        }
+
+        // Assign new password (pre-save hook will bcrypt hash it)
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Password updated successfully in database. Please log in with your new password.'
+        });
     } catch (error) {
         next(error);
     }

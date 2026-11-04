@@ -121,7 +121,7 @@ const LeaveHub = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
                 <div>
                     <h3 className="text-2xl sm:text-3xl font-bold text-md-on-surface tracking-tight">Leave & WFH Hub</h3>
-                    <p className="text-md-on-surface-variant font-medium text-xs sm:text-sm mt-1">Operational paused-state requests, remote duty & quota tracking</p>
+                    <p className="text-md-on-surface-variant font-medium text-xs sm:text-sm mt-1">Leave requests, remote work applications & quota balance tracking</p>
                 </div>
                 <motion.button
                     whileHover={{ scale: 1.02 }}
