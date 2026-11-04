@@ -356,10 +356,11 @@ exports.updatePassword = async (req, res, next) => {
             });
         }
 
-        if (newPassword.length < 6) {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^~_!])[A-Za-z\d@$!%*?&#^~_!]{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
             return res.status(400).json({
                 success: false,
-                error: 'New password must be at least 6 characters long.'
+                error: 'New password must be at least 8 characters long and contain at least one uppercase letter (A-Z), one lowercase letter (a-z), one number (0-9), and one special symbol (e.g. @, #, $, !).'
             });
         }
 
@@ -396,7 +397,7 @@ exports.updatePassword = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            message: 'Password updated successfully in database. Please log in with your new password.'
+            message: 'Password updated successfully. Please log in with your new password.'
         });
     } catch (error) {
         next(error);

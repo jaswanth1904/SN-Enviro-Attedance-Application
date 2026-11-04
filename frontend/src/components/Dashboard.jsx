@@ -749,7 +749,7 @@ const Dashboard = () => {
             const res = await updateProfile(profileData);
             if (res.success) {
                 setIsEditingProfile(false);
-                setStatusMessage('Data Saved to Data Base Successfully!');
+                setStatusMessage('Profile updated successfully!');
                 setCheckStatus('success');
                 setTimeout(() => setStatusMessage(''), 3000);
             } else {
@@ -758,7 +758,7 @@ const Dashboard = () => {
             }
         } catch (err) {
             console.error('Update failed', err);
-            setStatusMessage('Critical Network/Database Connection Error');
+            setStatusMessage('Network connection error. Please try again.');
             setCheckStatus('error');
         } finally {
             setIsSavingProfile(false);

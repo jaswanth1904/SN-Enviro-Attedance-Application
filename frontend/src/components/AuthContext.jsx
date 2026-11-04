@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }) => {
             console.error('Profile update error full response:', error.response?.data);
             return {
                 success: false,
-                message: error.response?.data?.error || 'Database connection error'
+                message: error.response?.data?.error || 'Server connection error. Please try again.'
             };
         }
     };
