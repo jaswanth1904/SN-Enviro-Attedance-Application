@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './components/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
-import TVLiveMap from './components/TVLiveMap';
 import { AnimatePresence, motion, useSpring } from 'framer-motion';
 
 // Lazy load heavy components for extreme performance
@@ -25,9 +24,19 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const NotFound = lazy(() => import('./components/NotFound'));
 
-// New Admin Panel Components
+// Dedicated Admin and TV Map Components (Lazy loaded to keep employee dashboard ultra-lightweight)
+const TVLiveMap = lazy(() => import('./components/TVLiveMap'));
 const AdminLayout = lazy(() => import('./components/AdminPanel/AdminLayout'));
-import { Overview, EmployeeManagement, AttendanceManagement, MDAnnouncements, Notifications, LeaveManagement, AbsenceExplanations, ReportsAnalytics, DepartmentsSites, Settings } from './components/AdminPanel/AdminPlaceholders';
+const Overview = lazy(() => import('./components/AdminPanel/Overview'));
+const EmployeeManagement = lazy(() => import('./components/AdminPanel/EmployeeManagement'));
+const AttendanceManagement = lazy(() => import('./components/AdminPanel/AttendanceManagement'));
+const MDAnnouncements = lazy(() => import('./components/AdminPanel/MDAnnouncements'));
+const Notifications = lazy(() => import('./components/AdminPanel/Notifications'));
+const LeaveManagement = lazy(() => import('./components/AdminPanel/LeaveManagement'));
+const AbsenceExplanations = lazy(() => import('./components/AdminPanel/AbsenceExplanations'));
+const ReportsAnalytics = lazy(() => import('./components/AdminPanel/ReportsAnalytics'));
+const DepartmentsSites = lazy(() => import('./components/AdminPanel/DepartmentsSites'));
+const Settings = lazy(() => import('./components/AdminPanel/Settings'));
 
 // Ultra-fast Loading Placeholder
 const ComponentLoader = () => (

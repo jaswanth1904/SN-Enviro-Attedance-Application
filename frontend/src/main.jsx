@@ -5,18 +5,21 @@ import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary'
 
-// Initialize Sentry for Error Tracking and User Session Replays
+// Initialize Sentry for Error Tracking and User Session Replays (Only sample crashes to avoid page load blocking)
 Sentry.init({
-  dsn: import.meta.env.VITE_SENTRY_DSN || "https://public@sentry.example.com/2", // Replace with your Frontend Sentry DSN
+  dsn: import.meta.env.VITE_SENTRY_DSN || "https://public@sentry.example.com/2",
   integrations: [
     Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration(),
+    Sentry.replayIntegration({
+      maskAllText: false,
+      blockAllMedia: false,
+    }),
   ],
-  // Performance Monitoring
-  tracesSampleRate: 1.0, 
+  // Performance Monitoring: sample 10% in production to keep CPU and network free
+  tracesSampleRate: 0.1, 
   tracePropagationTargets: ["localhost", /^https:\/\/attendance\.snenviro\.org/],
-  // Session Replay (Captures video-like replays of crashes)
-  replaysSessionSampleRate: 0.1, 
+  // Session Replay: Only capture replays when an error happens (Zero overhead on normal loads)
+  replaysSessionSampleRate: 0.0, 
   replaysOnErrorSampleRate: 1.0, 
 });
 

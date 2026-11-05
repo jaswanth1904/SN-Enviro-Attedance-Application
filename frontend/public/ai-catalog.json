@@ -1,0 +1,8 @@
+{
+  "$schema": "https://agenticresourcediscovery.org/spec/v1/schema.json",
+  "name": "SN Enviro Attendance Portal",
+  "description": "Enterprise workforce operations and geo-attendance system.",
+  "url": "https://attendance.snenviro.org",
+  "version": "1.0.0",
+  "capabilities": ["attendance-tracking", "leave-management", "operations-telemetry"]
+}

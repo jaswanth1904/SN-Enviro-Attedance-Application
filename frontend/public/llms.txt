@@ -1,0 +1,8 @@
+# SN Enviro Attendance Portal
+
+> High-performance enterprise attendance and field operations management system for SN Enviro.
+
+## Primary Routes
+- [Employee Dashboard](https://attendance.snenviro.org/dashboard): Mark attendance, real-time telemetry, session status.
+- [Leave & WFH Hub](https://attendance.snenviro.org/dashboard): Apply for casual/sick leave and track quotas.
+- [Official Website](https://attendance.snenviro.org/): Portal homepage and organizational information.

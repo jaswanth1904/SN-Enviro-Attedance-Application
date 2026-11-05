@@ -830,7 +830,7 @@ const Dashboard = () => {
                                                 : 'Verify your location and login.'}
                                 </p>
 
-                                <div className="w-full bg-slate-50/90 rounded-2xl sm:rounded-[24px] p-4 sm:p-6 mb-6 sm:mb-8 border border-slate-100 flex flex-col items-center relative z-10">
+                                <div className="w-full min-h-[190px] sm:min-h-[210px] justify-center bg-slate-50/90 rounded-2xl sm:rounded-[24px] p-4 sm:p-6 mb-6 sm:mb-8 border border-slate-100 flex flex-col items-center relative z-10 transition-all">
                                     <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white shadow-sm flex items-center justify-center text-blue-600 mb-3 sm:mb-4">
                                         <MapPin size={24} className="sm:w-7 sm:h-7" strokeWidth={1.5} />
                                     </div>
@@ -838,7 +838,7 @@ const Dashboard = () => {
                                     {geoLoading ? (
                                         <div className="flex flex-col items-center gap-2">
                                             <Loader2 size={22} className="animate-spin text-slate-400" />
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Acquiring GPS...</span>
+                                            <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Acquiring GPS...</span>
                                         </div>
                                     ) : coords ? (
                                         <>
@@ -864,7 +864,7 @@ const Dashboard = () => {
                                             {isCheckedIn && (
                                                 <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold mb-1.5 transition-all">
                                                     {liveMovementStatus.isMoving ? (
-                                                        <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-xs">
+                                                        <span className="flex items-center gap-1.5 text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-300 shadow-xs">
                                                             <span className="relative flex h-2 w-2">
                                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -872,7 +872,7 @@ const Dashboard = () => {
                                                             ⚡ Moving ({liveMovementStatus.speed > 0 ? `${liveMovementStatus.speed} km/h` : 'Transit >50m'})
                                                         </span>
                                                     ) : (
-                                                        <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-xs">
+                                                        <span className="flex items-center gap-1.5 text-blue-800 bg-blue-100/80 px-2.5 py-0.5 rounded-full border border-blue-200 shadow-xs">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                                             Stationary ({isHeadOffice ? 'Head Office' : (city || 'Office/Remote')})
                                                         </span>
@@ -882,14 +882,14 @@ const Dashboard = () => {
                                             
                                             {/* Today's Login Time Indicator */}
                                             {dailyRecords[0] && new Date(dailyRecords[0].earliestLogin).toDateString() === new Date().toDateString() && (
-                                                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full mt-1.5">
+                                                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-emerald-800 bg-emerald-100/80 border border-emerald-200/80 px-3 py-1.5 rounded-full mt-1.5">
                                                     <Clock size={13} className="shrink-0" /> 
                                                     Today's Login Time: {new Date(dailyRecords[0].earliestLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             )}
                                         </>
                                     ) : (
-                                        <div className="flex flex-col items-center gap-2 text-rose-400">
+                                        <div className="flex flex-col items-center gap-2 text-rose-500">
                                             <Globe size={24} />
                                             <span className="text-[10px] uppercase tracking-[0.2em] font-bold">Location Required</span>
                                         </div>
@@ -898,7 +898,7 @@ const Dashboard = () => {
 
                                 {isCheckedIn && (
                                     <div className="mb-5 sm:mb-6 flex flex-col items-center">
-                                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Active Session Duration</span>
+                                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">Active Session Duration</span>
                                         <span className="text-2xl sm:text-3xl font-mono font-bold text-slate-800 tracking-tight">{sessionTimer}</span>
                                     </div>
                                 )}
