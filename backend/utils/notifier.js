@@ -78,23 +78,30 @@ const sendDailyReport = async (presentUsers, absentUsers, onLeaveUsers = []) => 
             });
 
             // Executive Management recipients strictly for the Daily Attendance Report
+            // Jaswanth and Software removed; Ramesh removed. David and Sales only.
             const executiveRecipients = [
                 'sales@snenviro.com',
-                'david@snenviro.com',
-                'ramesh@snenviro.com',
-                'jaswanth@snenviro.in',
-                'software@snenviro.in'
+                'david@snenviro.com'
             ];
+            const excludedEmails = new Set([
+                'jaswanth@snenviro.in',
+                'software@snenviro.in',
+                'ramesh@snenviro.com',
+                'ramesh@snenviro.in'
+            ]);
+
             const envRecipients = process.env.DAILY_REPORT_EMAILS
-                ? process.env.DAILY_REPORT_EMAILS.split(',').map(e => e.trim()).filter(Boolean)
+                ? process.env.DAILY_REPORT_EMAILS.split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
                 : [];
-            const primaryRecipient = process.env.DM_EMAIL || authUser;
+            const primaryRecipient = process.env.DM_EMAIL ? process.env.DM_EMAIL.trim().toLowerCase() : null;
 
             const recipientList = Array.from(new Set([
                 primaryRecipient,
                 ...executiveRecipients,
                 ...envRecipients
-            ])).filter(Boolean);
+            ]))
+            .filter(Boolean)
+            .filter(email => !excludedEmails.has(email.toLowerCase()));
 
             const mailOptions = {
                 from: `"${fromName}" <${fromEmail}>`,

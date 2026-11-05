@@ -146,6 +146,22 @@ const LeaveHub = () => {
                 </div>
             </div>
 
+            {/* Annual Quota Renewal Notice */}
+            <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-indigo-100 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-xs shadow-2xs">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs mt-0.5">
+                    <Calendar size={16} />
+                </div>
+                <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold text-slate-800 text-sm">📅 Annual Quota Policy: Renewal from January 2027</h4>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Provisional Count</span>
+                    </div>
+                    <p className="text-slate-600 mt-1 leading-relaxed text-xs">
+                        Displayed leave balances are provisional counts. Official <strong>Casual Leave (12)</strong> and <strong>Sick Leave (12)</strong> quotas will officially renew starting from <strong>January 2027</strong>.
+                    </p>
+                </div>
+            </div>
+
             {/* Quota Stats Grid (2-columns on mobile, 4 on desktop) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                 {stats.map((stat, i) => (

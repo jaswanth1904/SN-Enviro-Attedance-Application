@@ -536,16 +536,34 @@ const ProfileCard = ({ attendanceData }) => {
                                         </div>
                                         <p className="text-lg font-bold text-rose-700">{metrics.absentDays} Days</p>
                                     </div>
-                                    <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
-                                        <div className="flex items-center gap-2 text-indigo-600 mb-2">
-                                            <Calendar size={16} />
-                                            <span className="text-[10px] font-bold uppercase tracking-widest">Leave Bal</span>
+                                    <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                                                <Calendar size={16} />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Leave Bal</span>
+                                            </div>
+                                            <p className="text-lg font-bold text-indigo-700">{metrics.leaveBalance}</p>
                                         </div>
-                                        <p className="text-lg font-bold text-indigo-700">{metrics.leaveBalance}</p>
+                                        <p className="text-[9px] text-indigo-500 font-bold mt-1">Renews Jan 2027</p>
                                     </div>
                                 </div>
 
-                                <div className="mt-6 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                                <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border border-indigo-100 flex items-start gap-3">
+                                    <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                                        <Calendar size={14} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="text-xs font-bold text-slate-800">Annual Leave Quota Notice</p>
+                                            <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Provisional Count</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-600 font-medium mt-0.5 leading-relaxed">
+                                            Current leave balance figures are provisional indicative counts. Official <strong>Casual Leave</strong> and <strong>Sick Leave</strong> quotas will officially renew starting from <strong>January 2027</strong>.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                                     <div className="flex justify-between items-center mb-3">
                                         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Attendance Health</span>
                                         <span className="text-sm font-black text-slate-800">{metrics.attendancePercent}%</span>
