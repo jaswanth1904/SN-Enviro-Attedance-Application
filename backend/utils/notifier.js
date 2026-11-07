@@ -77,31 +77,22 @@ const sendDailyReport = async (presentUsers, absentUsers, onLeaveUsers = []) => 
                 }
             });
 
-            // Executive Management recipients strictly for the Daily Attendance Report
-            // Jaswanth and Software removed; Ramesh removed. David and Sales only.
-            const executiveRecipients = [
-                'sales@snenviro.com',
-                'david@snenviro.com'
-            ];
+            // Daily Attendance Report recipient: strictly attendance@snenviro.in only
+            // All previous recipients (sales, david, jaswanth, ramesh, software) have been removed.
             const excludedEmails = new Set([
                 'jaswanth@snenviro.in',
                 'software@snenviro.in',
                 'ramesh@snenviro.com',
-                'ramesh@snenviro.in'
+                'ramesh@snenviro.in',
+                'sales@snenviro.com',
+                'david@snenviro.com'
             ]);
 
-            const envRecipients = process.env.DAILY_REPORT_EMAILS
-                ? process.env.DAILY_REPORT_EMAILS.split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
-                : [];
-            const primaryRecipient = process.env.DM_EMAIL ? process.env.DM_EMAIL.trim().toLowerCase() : null;
+            const envRecipient = process.env.DAILY_REPORT_EMAILS && !excludedEmails.has(process.env.DAILY_REPORT_EMAILS.trim().toLowerCase())
+                ? process.env.DAILY_REPORT_EMAILS.split(',').map(e => e.trim().toLowerCase()).filter(e => !excludedEmails.has(e))[0]
+                : null;
 
-            const recipientList = Array.from(new Set([
-                primaryRecipient,
-                ...executiveRecipients,
-                ...envRecipients
-            ]))
-            .filter(Boolean)
-            .filter(email => !excludedEmails.has(email.toLowerCase()));
+            const recipientList = [envRecipient || 'attendance@snenviro.in'];
 
             const mailOptions = {
                 from: `"${fromName}" <${fromEmail}>`,

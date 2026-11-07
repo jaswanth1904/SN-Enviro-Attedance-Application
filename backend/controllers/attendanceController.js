@@ -113,12 +113,12 @@ exports.recordAttendance = async (req, res, next) => {
             });
         }
 
-        // Check Morning Lock: Daily attendance opens at 9:30 AM IST (Admins exempt)
-        const isBeforeNineThirty = istHours < 9 || (istHours === 9 && istMinutes < 30);
-        if (isBeforeNineThirty && req.user.role !== 'Admin') {
+        // Check Morning Lock: Daily attendance opens at 9:00 AM IST (Admins exempt)
+        const isBeforeNine = istHours < 9;
+        if (isBeforeNine && req.user.role !== 'Admin') {
             return res.status(403).json({
                 success: false,
-                error: 'Attendance check-in is locked. The morning check-in window opens at 9:30 AM IST.'
+                error: 'Attendance check-in is locked. The morning check-in window opens at 9:00 AM IST.'
             });
         }
 
@@ -304,6 +304,15 @@ exports.recordImmediateAttendance = async (req, res, next) => {
                 success: false,
                 isSundayLocked: true,
                 error: 'Weekly Off: Sunday is an official company holiday. Attendance check-in is disabled.'
+            });
+        }
+
+        // Check Morning Lock: Daily attendance opens at 9:00 AM IST (Admins exempt)
+        const isBeforeNine = istHours < 9;
+        if (isBeforeNine && req.user.role !== 'Admin') {
+            return res.status(403).json({
+                success: false,
+                error: 'Attendance check-in is locked. The morning check-in window opens at 9:00 AM IST.'
             });
         }
 
@@ -655,10 +664,20 @@ exports.getLiveReports = async (req, res, next) => {
             r.user.email !== 'md@snenviro.in'
         );
 
+        // Keep only the latest active attendance record per user
+        const latestByUser = new Map();
+        for (const r of cleanReports) {
+            const userId = r.user._id ? r.user._id.toString() : (r.user.id ? r.user.id.toString() : r.user.name);
+            if (!latestByUser.has(userId)) {
+                latestByUser.set(userId, r);
+            }
+        }
+        const uniqueCleanReports = Array.from(latestByUser.values());
+
         res.status(200).json({
             success: true,
-            count: cleanReports.length,
-            data: cleanReports
+            count: uniqueCleanReports.length,
+            data: uniqueCleanReports
         });
     } catch (error) {
         next(error);

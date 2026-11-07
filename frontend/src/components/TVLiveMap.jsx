@@ -24,7 +24,7 @@ const authorizedPlants = [
     { name: "Ultratech Cement Limited (unit: Jhajjar Cement Works)", lat: 28.5051, lng: 76.3672 },
     { name: "Indo Rama Synthetics (I) Ltd", lat: 20.922, lng: 78.9545 },
     { name: "Ultratech Cement Limited (unit: Shahjahanpur Cement Works)", lat: 27.8667, lng: 79.6789 },
-    { name: "SCML", lat: 25.1793, lng: 92.3908 },
+    { name: "Star Cement Meghalaya Limited", lat: 25.1793, lng: 92.3908 },
     { name: "Cipla Limited", lat: 12.7942, lng: 77.6574 },
     { name: "Grasim Industries Limited", lat: 17.0809, lng: 82.1443 },
     { name: "Ultratech Cement Limited (Unit :Patliputra Cement Works)", lat: 25.3967, lng: 85.2899 },
@@ -42,10 +42,8 @@ const authorizedPlants = [
     { name: "Bihar Distillers & Bottlers Pvt Ltd", lat: 25.4104, lng: 84.5289 },
     { name: "Adani Power Limited", lat: 13.1634, lng: 74.8123 },
     { name: "Hira Ferro Alloys Ltd.", lat: 21.3156, lng: 81.6153 },
-    { name: "Hira Ferro Alloys Ltd - Display File", lat: 21.3156, lng: 81.6153 },
     { name: "UltraTech Cement Ltd Unit - Vikram Cemets Works (Lime Stone Mine - III)", lat: 24.5791, lng: 74.8053 },
     { name: "Ultra Tech Cements Ltd Unit Vikram Cemets Works - Mines", lat: 24.586069, lng: 74.805232 },
-    { name: "ULTRA TECH CEMENT LIMITED (Unit: Neem Ka Thana Cement Works)", lat: 27.6833, lng: 75.7088 },
     { name: "Ultratech Cement Limited (unit: Dhar Cement Works) - Mines", lat: 22.2646, lng: 75.1358 },
     { name: "KASHI VISHWANATH STEEL PVT LTD", lat: 29.1887, lng: 79.0025 },
     { name: "Shree Agra Cement Plant (A Unit of Shree Cement East Private Limited)", lat: 27.4904, lng: 78.8324 },
@@ -64,7 +62,6 @@ const authorizedPlants = [
     { name: "Ultratech Cement Limited (unit: Dalla Cement Works)", lat: 24.4459, lng: 83.0771 },
     { name: "Ultratech Cement Limited (unit: Dhar Cement Works)", lat: 22.2665, lng: 75.1333 },
     { name: "LANXESS INIDA PRIVATE LIMITED", lat: 23.4411, lng: 75.4064 },
-    { name: "Vikram Cemets Works", lat: 24.586069, lng: 74.805232 },
     { name: "Ultratech Cement Limited (unit:Nathdwara Cement Works)", lat: 24.8209, lng: 73.0898 },
     { name: "Maharashtra State Power Generation Company Limited", lat: 22.162, lng: 83.5321 },
     { name: "UltraTech Cement Ltd. (Unit- Dhule Cement Works)", lat: 21.1532, lng: 74.8505 },
@@ -83,19 +80,15 @@ const authorizedPlants = [
     { name: "Star Cement Limited", lat: 22.5173, lng: 88.2992 },
     { name: "Ultratech Cement Limited (unit: Arakkonam Cement Works)", lat: 13.0773, lng: 79.6138 },
     { name: "Ultratech Cement Limited (unit: Balaji Cement Works)", lat: 16.8711, lng: 80.022 },
-    { name: "Ultratech Cement Limited (Unit: Reddipalayam Cement Works)(Thermal Power Plant)", lat: 11.1079, lng: 79.1747 },
-    { name: "UltraTech Cement Ltd (Unit : APCW, Andhra Pradesh Cement Works - Mining)", lat: 15.026, lng: 78.0144 },
+    { name: "Ultratech Cement Limited (Unit: Reddipalayam Cement Works)", lat: 11.1079, lng: 79.1747 },
     { name: "Ultratech Cement Limited (Unit: Karur Cement Works)", lat: 10.492316, lng: 78.07511 },
     { name: "Ultratech Cement Limited (Unit: panipat Cement Works)", lat: 29.2894, lng: 76.8095 },
     { name: "Jayaswal Neco Industries Limited", lat: 21.3521, lng: 81.6606 },
     { name: "UltraTech Cement Ltd.(Unit: Petnikota Cement Works)", lat: 15.0709, lng: 78.081 },
     { name: "UltraTech Cement Ltd. (Unit- Vizag Cement Works)", lat: 17.946, lng: 83.2026 },
-    { name: "Ultratech Cement Limited (Unit: Nathdwara Cement Work)", lat: 24.8209, lng: 73.0898 },
     { name: "Sidhi Cement Works, (A unit of UltraTech Cement Ltd.) Thermal Power Plant", lat: 24.3256, lng: 81.3315 },
     { name: "Ultratech Cement Limited (unit: Aligarh Cement Works)", lat: 28.023454, lng: 78.166783 },
-    { name: "Star Cement Meghalaya Limited", lat: 25.1793, lng: 92.3908 },
     { name: "Ultratech Cement Limited (unit: Aditya Cement Works)", lat: 24.7613, lng: 74.6117 },
-    { name: "Ultratech Cement Limited (Unit: Reddipalayam Cement Works)", lat: 11.1079, lng: 79.1747 },
     { name: "Ultratech cements limited (Unit :Nagpur Cement Works)", lat: 21.2489, lng: 79.3704 },
     { name: "Ultratech Cement Limited (Unit: Baga Cement Works)", lat: 31.329, lng: 76.8916 },
     { name: "Ultratech Cement Limited (unit: Rajashree Cement Works )", lat: 17.1408, lng: 77.1726 }
@@ -226,8 +219,9 @@ const TVLiveMap = () => {
                 const uniqueMarkers = [];
                 const seenUsers = new Set();
                 for (const marker of activeMarkers) {
-                    if (!seenUsers.has(marker.name)) {
-                        seenUsers.add(marker.name);
+                    const userKey = marker.name ? marker.name.trim().toLowerCase() : marker.id;
+                    if (!seenUsers.has(userKey)) {
+                        seenUsers.add(userKey);
                         uniqueMarkers.push(marker);
                     }
                 }
@@ -241,21 +235,22 @@ const TVLiveMap = () => {
 
         const socket = io(getSocketUrl());
         socket.on('attendance_logged', (newLog) => {
+            const userName = newLog.user?.name?.trim().toLowerCase();
             if (newLog.checkOut) {
-                setEngineers(prev => prev.filter(e => e.name !== newLog.user.name));
+                setEngineers(prev => prev.filter(e => e.name?.trim().toLowerCase() !== userName));
             } else {
                 const lat = newLog.location?.coordinates[1];
                 const lng = newLog.location?.coordinates[0];
                 const newMarker = {
                     id: newLog._id,
-                    name: newLog.user.name,
-                    role: newLog.user.role,
+                    name: newLog.user?.name,
+                    role: newLog.user?.role,
                     position: [lat, lng],
                     site: formatLocationName(newLog.locationName, newLog.site?.name, lat, lng),
                     time: new Date(newLog.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true })
                 };
                 setEngineers(prev => {
-                    const filtered = prev.filter(e => e.name !== newMarker.name);
+                    const filtered = prev.filter(e => e.name?.trim().toLowerCase() !== userName);
                     return [newMarker, ...filtered];
                 });
             }
@@ -352,33 +347,63 @@ const TVLiveMap = () => {
 
                     {/* Render Plants & Matched Engineers */}
                     {(() => {
+                        const plantEngineersMap = new Map();
                         const assignedEngineerIds = new Set();
-                        
-                        const plantElements = authorizedPlants.map((plant, index) => {
-                            // Match engineers within 500m for Head Office or 1500m for industrial sites, or exact site name
-                            const activeEngineers = engineers.filter(e => {
-                                if (!e.position || !e.position[0]) return false;
-                                if (e.site === plant.name) return true;
-                                if (plant.name.includes('Head Office') && e.site && e.site.includes('Head Office')) return true;
-                                
-                                // Distance check (Haversine formula in meters)
-                                const R = 6371e3;
-                                const dLat = (e.position[0] - plant.lat) * Math.PI / 180;
-                                const dLng = (e.position[1] - plant.lng) * Math.PI / 180;
-                                const a = Math.sin(dLat/2)*Math.sin(dLat/2) + 
-                                          Math.cos(plant.lat*Math.PI/180) * Math.cos(e.position[0]*Math.PI/180) * 
-                                          Math.sin(dLng/2)*Math.sin(dLng/2);
-                                const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                                const maxRadius = plant.name.includes('Head Office') ? 500 : 1500;
-                                return dist <= maxRadius;
+
+                        // Assign each engineer exclusively to at most ONE best-matching plant
+                        engineers.forEach((eng) => {
+                            if (!eng.position || !eng.position[0]) return;
+
+                            // 1. Exact site name match takes first priority
+                            let matchedPlantIndex = authorizedPlants.findIndex((p) => {
+                                if (eng.site && eng.site === p.name) return true;
+                                if (p.name.includes('Head Office') && eng.site && eng.site.includes('Head Office')) return true;
+                                return false;
                             });
 
+                            // 2. If no exact match, find the single closest plant within allowable radius
+                            if (matchedPlantIndex === -1) {
+                                let closestIndex = -1;
+                                let minDistance = Infinity;
+
+                                authorizedPlants.forEach((p, idx) => {
+                                    const R = 6371e3;
+                                    const dLat = ((eng.position[0] - p.lat) * Math.PI) / 180;
+                                    const dLng = ((eng.position[1] - p.lng) * Math.PI) / 180;
+                                    const a =
+                                        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                        Math.cos((p.lat * Math.PI) / 180) *
+                                            Math.cos((eng.position[0] * Math.PI) / 180) *
+                                            Math.sin(dLng / 2) *
+                                            Math.sin(dLng / 2);
+                                    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+                                    const maxRadius = p.name.includes('Head Office') ? 500 : 1500;
+                                    if (dist <= maxRadius && dist < minDistance) {
+                                        minDistance = dist;
+                                        closestIndex = idx;
+                                    }
+                                });
+
+                                matchedPlantIndex = closestIndex;
+                            }
+
+                            if (matchedPlantIndex !== -1) {
+                                if (!plantEngineersMap.has(matchedPlantIndex)) {
+                                    plantEngineersMap.set(matchedPlantIndex, []);
+                                }
+                                plantEngineersMap.get(matchedPlantIndex).push(eng);
+                                assignedEngineerIds.add(eng.id || eng.name);
+                            }
+                        });
+
+                        const plantElements = authorizedPlants.map((plant, index) => {
+                            const activeEngineers = plantEngineersMap.get(index) || [];
                             const isActive = activeEngineers.length > 0;
-                            activeEngineers.forEach(eng => assignedEngineerIds.add(eng.id || eng.name));
 
                             return (
                                 <Marker key={`plant-${index}`} position={[plant.lat, plant.lng]} icon={createPlantIcon(isActive, isDark, activeEngineers.length)}>
-                                    <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false}>
+                                    <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={true}>
                                         <div className="flex flex-col gap-3 min-w-[260px] max-w-[340px]">
                                             {/* Header */}
                                             <div className={`pb-2 border-b flex items-center justify-between ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
@@ -459,7 +484,7 @@ const TVLiveMap = () => {
                                         click: (e) => e.target.openPopup()
                                     }}
                                 >
-                                    <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={false}>
+                                    <Popup className={`custom-premium-popup ${isDark ? 'dark' : 'light'}`} autoPan={true}>
                                         <div className="flex flex-col gap-3 min-w-[260px] max-w-[340px]">
                                             <div className={`pb-2 border-b flex items-center justify-between ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
                                                 <p className="font-semibold text-xs leading-snug flex items-center gap-1.5 opacity-90 truncate m-0">

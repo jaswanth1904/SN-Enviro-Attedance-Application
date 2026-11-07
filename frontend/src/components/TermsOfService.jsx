@@ -92,7 +92,7 @@ const TermsOfService = () => {
                             <div>
                                 <h2 className="text-lg font-bold text-slate-900 mb-2">Operational Timing & Weekly Offs</h2>
                                 <ul className="list-disc pl-5 text-sm text-slate-600 space-y-1.5">
-                                    <li><strong>Opening Window:</strong> Regular daily attendance check-in opens at 9:30 AM IST Monday through Saturday.</li>
+                                    <li><strong>Opening Window:</strong> Regular daily attendance check-in opens at 9:00 AM IST Monday through Saturday.</li>
                                     <li><strong>Late Escalations:</strong> Check-ins logged after 10:30 AM trigger automatic escalation alerts and require submitting an absence/delay explanation for HR review.</li>
                                     <li><strong>Auto-Checkout:</strong> All open engineer shifts automatically conclude at 7:00 PM IST to protect against orphaned sessions.</li>
                                     <li><strong>Sundays:</strong> Sunday is an institutional weekly off. Attendance check-in is locked and automated notification crons are silenced.</li>
